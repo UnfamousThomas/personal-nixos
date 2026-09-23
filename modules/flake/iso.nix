@@ -69,9 +69,7 @@
     ];
   };
 
-  perSystem =
-    { ... }:
-    {
-      packages.iso = config.flake.nixosConfigurations.installer-iso.config.system.build.isoImage;
-    };
+  perSystem = _: {
+    packages.iso = config.flake.nixosConfigurations.installer-iso.config.system.build.isoImage;
+  };
 }
