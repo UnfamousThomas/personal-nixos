@@ -24,6 +24,7 @@ modules/
     formatter.nix             treefmt-nix: nixfmt + statix + deadnix
     devshell.nix              `nix develop` here: tools for maintaining this repo
     hosts.nix                 turns every hosts/<name>/ into nixosConfigurations.<name>
+    iso.nix                   installer-iso host + `packages.iso` (auto-runs the installer on boot)
     templates.nix, install-app.nix
   roles/                      base, workstation, gaming, laptop: bundles of features
   features/                   the actual configuration, one aspect per file
@@ -101,6 +102,14 @@ host(s) that should have it.
 
 **This wipes the target disk(s).** Test in a VM first if you're not sure
 about something (see "Testing before you commit to real hardware" below).
+
+Either boot the stock NixOS ISO and follow the steps below, or build this
+repo's own installer ISO (`nix build .#iso`, or download it from this
+repo's "Installer ISO (latest)" GitHub release -- built on demand via the
+"build installer ISO" Actions workflow, not on every push) and boot that
+instead: it has `nix-command`/`flakes` already enabled and launches the
+installer automatically once networking is up, skipping steps 1-2 below
+entirely.
 
 1. Boot the NixOS ISO on the target machine, get networking up. If you need
    a non-US keyboard layout (e.g. Estonian) and `loadkeys ee` fails with "no

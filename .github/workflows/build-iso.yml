@@ -1,0 +1,28 @@
+name: build installer ISO
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: accept-flake-config = true
+      - run: nix build --print-build-logs --no-link --out-link result .#iso
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: installer-latest
+          name: Installer ISO (latest)
+          body: >
+            Boots straight into the installer once networking is up --
+            see the README's "Installing on a new machine". Rebuilt
+            on demand from whatever commit main was at when this
+            workflow last ran, not necessarily the current main.
+          files: result/iso/*.iso
+          make_latest: true
