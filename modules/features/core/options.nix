@@ -29,6 +29,15 @@
           default = "";
           description = "Extra `spawn-at-startup` lines.";
         };
+        # 0.5 means two columns fill the screen -- fine on a laptop, but
+        # cramped on a wider desktop monitor where more should fit at
+        # once. Per-host since it depends on actual screen width, not
+        # something a single shared default can get right everywhere.
+        defaultColumnWidthProportion = lib.mkOption {
+          type = lib.types.float;
+          default = 0.5;
+          description = "Proportion of output width niri's default column width takes up.";
+        };
       };
     };
 }

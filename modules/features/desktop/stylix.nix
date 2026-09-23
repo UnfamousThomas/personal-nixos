@@ -7,12 +7,18 @@
 
       stylix.enable = true;
       stylix.polarity = "dark";
-      # Catppuccin Mocha, standard base16 mapping. Passed as an inline
-      # attrset (Stylix accepts path/YAML-string/attrset) rather than
-      # pointing at pkgs.base16-schemes' YAML file: Stylix's own YAML
-      # loader does its color-parsing via an IFD derivation that this
-      # environment couldn't realize during `nix flake check` -- an
-      # attrset sidesteps that indirection entirely and is equally correct.
+      # Catppuccin Mocha, standard base16 mapping -- except base0B/base0E
+      # are swapped (Green in the slot Mauve normally occupies) since
+      # base0E is the slot most base16 templates treat as the primary
+      # accent/keyword color; swapping the values there is what actually
+      # shifts the accent to green everywhere Stylix themes automatically,
+      # rather than just wherever something happens to reference "green"
+      # by name. Passed as an inline attrset (Stylix accepts
+      # path/YAML-string/attrset) rather than pointing at
+      # pkgs.base16-schemes' YAML file: Stylix's own YAML loader does its
+      # color-parsing via an IFD derivation that this environment couldn't
+      # realize during `nix flake check` -- an attrset sidesteps that
+      # indirection entirely and is equally correct.
       stylix.base16Scheme = {
         base00 = "1e1e2e"; # Base
         base01 = "181825"; # Mantle
@@ -25,10 +31,10 @@
         base08 = "f38ba8"; # Red
         base09 = "fab387"; # Peach
         base0A = "f9e2af"; # Yellow
-        base0B = "a6e3a1"; # Green
+        base0B = "cba6f7"; # Mauve (usually here: Green)
         base0C = "94e2d5"; # Teal
         base0D = "89b4fa"; # Blue
-        base0E = "cba6f7"; # Mauve
+        base0E = "a6e3a1"; # Green (usually here: Mauve) -- the new accent
         base0F = "f2cdcd"; # Flamingo
       };
 

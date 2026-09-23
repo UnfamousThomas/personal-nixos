@@ -29,10 +29,10 @@
         layout {
             gaps 12
             center-focused-column "never"
-            default-column-width { proportion 0.5; }
+            default-column-width { proportion ${toString config.myConfig.niri.defaultColumnWidthProportion}; }
             focus-ring {
                 width 2
-                active-color "#cba6f7"
+                active-color "#a6e3a1"
                 inactive-color "#45475a"
             }
             border {
@@ -56,12 +56,13 @@
             Mod+D hotkey-overlay-title="Open Firefox" { spawn "firefox"; }
             Mod+E hotkey-overlay-title="Open File Manager" { spawn "nautilus"; }
             Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
-            Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
+            Mod+C hotkey-overlay-title="Open Discord" { spawn "discord"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
-            Mod+Space hotkey-overlay-title="Open Launcher" { spawn-sh "noctalia msg panel-toggle launcher"; }
-            // Tapping Mod alone opens the launcher too (untested against
-            // `niri validate` -- fix if it turns out not to be valid KDL).
-            Mod { spawn-sh "noctalia msg panel-toggle launcher"; }
+            // Mod+Space was already toggle-window-floating (below); niri
+            // also doesn't accept a bare Mod-alone bind ("invalid key:
+            // Mod" from `niri validate`) so a Super-tap-to-launch isn't
+            // possible here. Mod+Slash instead.
+            Mod+Slash hotkey-overlay-title="Open Launcher" { spawn-sh "noctalia msg panel-toggle launcher"; }
 
             Mod+Q { close-window; }
             Mod+Left  { focus-column-left; }
