@@ -33,9 +33,10 @@ in
           # across upgrades; they are not a "target version".
           system.stateVersion = "26.05";
           home-manager.users.${config.my.user}.home.stateVersion = "26.05";
-          # Default (0.5, from core-options) only fits two columns even on
-          # a wide monitor; three fits more comfortably here.
-          home-manager.users.${config.my.user}.myConfig.niri.defaultColumnWidthProportion = 0.33;
+          # Two columns (the shared 0.5 default from core-options) is
+          # deliberate here: with Mod+Comma to stack a window into the
+          # current column (2 per column), that's a 2x2 grid feel of up
+          # to 4 windows, not 3 skinny columns.
 
           programs.steam.remotePlay.openFirewall = true;
         }
