@@ -33,9 +33,17 @@ echo "==> Block devices:"
 lsblk -dpno NAME,SIZE,MODEL
 
 read -rp "Target disk for the OS (e.g. /dev/nvme0n1): " DISK
+[ -n "$DISK" ] || {
+  echo "No disk entered, aborting."
+  exit 1
+}
 DISK2=""
 if [ "$HOST" = "thomas-desktop" ]; then
   read -rp "Second disk for bulk storage (e.g. /dev/sda): " DISK2
+  [ -n "$DISK2" ] || {
+    echo "No second disk entered, aborting."
+    exit 1
+  }
 fi
 
 echo
@@ -46,8 +54,13 @@ read -rp "Type 'yes' to continue: " CONFIRM
   exit 1
 }
 
+# Passed explicitly (not via NIX_CONFIG/nix.conf) because `sudo` strips the
+# calling shell's environment, and a stock installer ISO doesn't have
+# nix-command/flakes enabled system-wide.
+NIX_FLAGS=(--extra-experimental-features "nix-command flakes")
+
 echo "==> Generating hardware report with nixos-facter"
-sudo nix run github:nix-community/nixos-facter -- -o "hosts/$HOST/facter.json"
+sudo nix "${NIX_FLAGS[@]}" run github:nix-community/nixos-facter -- -o "hosts/$HOST/facter.json"
 
 echo "==> Partitioning and formatting with disko-install"
 echo "    (you will be prompted for a LUKS passphrase for each encrypted"
@@ -57,7 +70,7 @@ DISKO_ARGS=(--flake "path:${REPO_DIR}#${HOST}" --disk main "$DISK")
 if [ -n "$DISK2" ]; then
   DISKO_ARGS+=(--disk bulk "$DISK2")
 fi
-sudo nix run "github:nix-community/disko/latest#disko-install" -- "${DISKO_ARGS[@]}"
+sudo nix "${NIX_FLAGS[@]}" run "github:nix-community/disko/latest#disko-install" -- "${DISKO_ARGS[@]}"
 
 cat <<EOF
 

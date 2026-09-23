@@ -102,11 +102,14 @@ whichever host(s) should have it.
 about something (see "Testing before you commit to real hardware" below).
 
 1. Boot the NixOS ISO on the target machine, get networking up.
-2. Run:
+2. Run (the installer ISO doesn't have `nix-command`/`flakes` enabled by
+   default, hence the flag):
    ```
-   nix run "github:UnfamousThomas/personal-nixos#install"
+   nix --extra-experimental-features "nix-command flakes" run "github:UnfamousThomas/personal-nixos#install"
    ```
-   (or clone the repo yourself and run `./install/install.sh`).
+   (or clone the repo yourself and run `./install/install.sh`). If you're
+   re-running after a fix was just pushed, add `--refresh` so it doesn't
+   reuse a cached fetch of an older commit.
 3. Pick the host, pick the disk(s) (the script prints `lsblk` output),
    confirm the wipe. You'll be prompted for a LUKS passphrase per encrypted
    volume as `disko-install` formats them — pick one you'll remember, TPM2
