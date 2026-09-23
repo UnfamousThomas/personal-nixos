@@ -56,8 +56,11 @@ read -rp "Type 'yes' to continue: " CONFIRM
 
 # Passed explicitly (not via NIX_CONFIG/nix.conf) because `sudo` strips the
 # calling shell's environment, and a stock installer ISO doesn't have
-# nix-command/flakes enabled system-wide.
-NIX_FLAGS=(--extra-experimental-features "nix-command flakes")
+# nix-command/flakes enabled system-wide. --accept-flake-config trusts this
+# flake's nixConfig (nix-community/noctalia binary caches) -- without it,
+# Noctalia's Quickshell/Qt6 stack gets compiled from source, which is easily
+# enough to OOM a machine with 8GB of RAM.
+NIX_FLAGS=(--extra-experimental-features "nix-command flakes" --accept-flake-config)
 
 echo "==> Generating hardware report with nixos-facter"
 sudo nix "${NIX_FLAGS[@]}" run github:nix-community/nixos-facter -- -o "hosts/$HOST/facter.json"

@@ -1,6 +1,25 @@
 {
   description = "Thomas's personal, reproducible, multi-host NixOS configuration";
 
+  # Lets `nix build`/`run`/`nixos-install --flake` pick these substituters up
+  # BEFORE the system is installed (the equivalent `nix.settings` in
+  # features/core/nix-settings.nix only takes effect once already switched
+  # to). Without this, a from-scratch install compiles Noctalia's
+  # Quickshell/Qt6 stack from source instead of fetching it -- easily
+  # enough to OOM a machine with 8GB RAM. Untrusted flakes don't get this
+  # applied automatically; pass `--accept-flake-config` (or set
+  # `accept-flake-config = true` in nix.conf) the first time.
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      "https://noctalia.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
