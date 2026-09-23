@@ -10,14 +10,18 @@
 set -euo pipefail
 
 # The live ISO's / (and /tmp) is a RAM-backed tmpfs, capped by default at
-# ~50% of physical RAM. Evaluating this flake (many inputs: home-manager,
+# ~50% of physical RAM. More importantly, /nix/store itself is an overlay
+# of a read-only squashfs (/nix/.ro-store, part of the ISO -- always shows
+# 100% used, that's normal) unioned with a *separate* writable tmpfs
+# (/nix/.rw-store) that everything Nix fetches/builds during the install
+# actually lands in. Evaluating this flake (many inputs: home-manager,
 # disko, agenix, stylix, noctalia, opencode, openwave, treefmt-nix,
-# nixos-facter) can need more room than that default leaves -- well before
-# physical RAM is actually exhausted -- and surfaces as a bare "No space
-# left on device" mid-evaluation. Raise the cap so Nix can use the RAM
-# that's actually there.
-echo "==> Raising tmpfs size cap (default is ~50% of RAM, easily hit mid-eval)"
-for mnt in / /tmp; do
+# nixos-facter) can need more room than any of these defaults leave -- well
+# before physical RAM is actually exhausted -- and surfaces as a bare "No
+# space left on device" mid-evaluation. Raise the caps so Nix can use the
+# RAM that's actually there.
+echo "==> Raising tmpfs size caps (default ~50% of RAM, easily hit mid-eval)"
+for mnt in / /tmp /nix/.rw-store; do
   fstype="$(findmnt -no FSTYPE "$mnt" 2>/dev/null || true)"
   if [ "$fstype" = "tmpfs" ]; then
     sudo mount -o remount,size=90% "$mnt" || true
@@ -47,14 +51,44 @@ echo "Selected host: $HOST"
 echo "==> Block devices:"
 lsblk -dpno NAME,SIZE,MODEL
 
-read -rp "Target disk for the OS (e.g. /dev/nvme0n1): " DISK
+# Best-guess default: largest non-removable disk (skips the live-boot USB
+# stick itself, which lsblk reports as removable). Only a suggestion --
+# press Enter to accept it, or type a different device. The wipe
+# confirmation below always shows exactly what was picked before anything
+# is touched.
+best_disk() {
+  local exclude="${1:-}" best="" best_size=0 name rm bytes
+  while read -r name rm bytes; do
+    [ "$rm" = "1" ] && continue
+    [ -n "$exclude" ] && [ "$name" = "$exclude" ] && continue
+    if [ "$bytes" -gt "$best_size" ]; then
+      best_size="$bytes"
+      best="$name"
+    fi
+  done < <(lsblk -dpbno NAME,RM,SIZE)
+  echo "$best"
+}
+
+DEFAULT_DISK="$(best_disk)"
+if [ -n "$DEFAULT_DISK" ]; then
+  read -rp "Target disk for the OS (e.g. /dev/nvme0n1) [Enter for $DEFAULT_DISK]: " DISK
+  DISK="${DISK:-$DEFAULT_DISK}"
+else
+  read -rp "Target disk for the OS (e.g. /dev/nvme0n1): " DISK
+fi
 [ -n "$DISK" ] || {
   echo "No disk entered, aborting."
   exit 1
 }
 DISK2=""
 if [ "$HOST" = "thomas-desktop" ]; then
-  read -rp "Second disk for bulk storage (e.g. /dev/sda): " DISK2
+  DEFAULT_DISK2="$(best_disk "$DISK")"
+  if [ -n "$DEFAULT_DISK2" ]; then
+    read -rp "Second disk for bulk storage (e.g. /dev/sda) [Enter for $DEFAULT_DISK2]: " DISK2
+    DISK2="${DISK2:-$DEFAULT_DISK2}"
+  else
+    read -rp "Second disk for bulk storage (e.g. /dev/sda): " DISK2
+  fi
   [ -n "$DISK2" ] || {
     echo "No second disk entered, aborting."
     exit 1
