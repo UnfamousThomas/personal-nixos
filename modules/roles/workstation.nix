@@ -34,5 +34,6 @@ in
     zed-opencode
     discord
     sony-device-center
+    hidden-apps
   ];
 }
