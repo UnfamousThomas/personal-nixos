@@ -1,8 +1,9 @@
-{ swapSizeGiB, ... }:
 {
   # `device` is a placeholder -- always overridden at install time via
   # `disko-install --disk main <device>` (see install/install.sh). Never
-  # hardcode a real device path here.
+  # hardcode a real device path here. Partition labels carry the host name
+  # so another machine's disk plugged in can never claim the same
+  # /dev/disk/by-partlabel/ path as this host's root, swap or ESP.
   disko.devices.disk.main = {
     type = "disk";
     device = "/dev/disk/by-id/CHANGE_ME";
@@ -10,7 +11,8 @@
       type = "gpt";
       partitions = {
         ESP = {
-          size = "512M";
+          label = "thomas-laptop-ESP";
+          size = "1G";
           type = "EF00";
           content = {
             type = "filesystem";
@@ -20,15 +22,16 @@
           };
         };
 
-        # Sized to this host's actual detected RAM (hosts/thomas-laptop/facter.json)
-        # so it can hold a full hibernation image. NOTE: disko's own
+        # Sized to this laptop's RAM so it can hold a full hibernation
+        # image -- change it if the RAM isn't 8 GiB. NOTE: disko's own
         # lib/types/swap.nix flags encrypted-swap + hibernate-resume as not
         # fully supported (resumeDevice below only sets boot.resumeDevice;
         # the kernel `resume=` parameter is set by hand in ./default.nix).
         # Treat hibernate as "try it after install, fall back to suspend if
         # it doesn't wake cleanly" rather than a guaranteed feature.
         swap = {
-          size = "${toString swapSizeGiB}G";
+          label = "thomas-laptop-swap";
+          size = "8G";
           content = {
             type = "luks";
             name = "cryptswap";
@@ -41,6 +44,7 @@
         };
 
         root = {
+          label = "thomas-laptop-root";
           size = "100%";
           content = {
             type = "luks";

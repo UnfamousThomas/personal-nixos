@@ -1,77 +1,56 @@
-{ inputs, config, lib, ... }:
+{ config, ... }:
 let
-  # Flip to false for a single-disk install before the second (bulk/HDD)
-  # disk is available -- disko.nix then omits the `bulk` disk definition
-  # entirely, so disko-install/nixos-install never try to format or mount
-  # a device that isn't there. Flip back to true, commit, plug the HDD in,
-  # then re-run install.sh (it'll format just that disk) once it's ready.
-  hasBulkDisk = true;
+  inherit (config.flake.modules) nixos;
 in
 {
-  flake.nixosConfigurations.thomas-desktop = inputs.nixpkgs.lib.nixosSystem {
-    system = "x86_64-linux";
-    specialArgs = {
-      inherit inputs hasBulkDisk;
-    };
-    modules = [
-      inputs.disko.nixosModules.disko
-      ./disko.nix
-      (
+  flake.modules.nixos.thomas-desktop =
+    { config, lib, ... }:
+    {
+      imports = [
+        nixos.base
+        nixos.workstation
+        nixos.gaming
+        nixos.openwave
+        ./disko.nix
+      ];
+
+      options.host.bulkDisk.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Whether the 1TB bulk HDD (./disko-bulk.nix) is part of this host.
+          Set to false to install onto the SSD alone; see README "Adding the
+          bulk disk later" for bringing it in afterwards.
+        '';
+      };
+
+      config = lib.mkMerge [
         {
-          networking.hostName = "thomas-desktop";
-          hardware.facter.enable = true;
           hardware.facter.reportPath = ./facter.json;
-        }
-        // lib.optionalAttrs hasBulkDisk {
-          fileSystems."/mnt/hdd".neededForBoot = false;
-        }
-      )
 
-      config.flake.modules.nixos.core-nix
-      config.flake.modules.nixos.core-locale
-      config.flake.modules.nixos.core-users
-      config.flake.modules.nixos.core-boot-encrypted
-      config.flake.modules.nixos.core-networking
-      config.flake.modules.nixos.core-home-manager
-      config.flake.modules.nixos.core-zram
-      config.flake.modules.nixos.security-agenix
-      config.flake.modules.nixos.security-idcard
-      config.flake.modules.nixos.desktop-niri
-      config.flake.modules.nixos.desktop-greetd
-      config.flake.modules.nixos.desktop-noctalia
-      config.flake.modules.nixos.desktop-stylix
-      config.flake.modules.nixos.desktop-bluetooth
-      config.flake.modules.nixos.desktop-audio
-      config.flake.modules.nixos.firefox
-      config.flake.modules.nixos.onepassword
-      config.flake.modules.nixos.docker
-      config.flake.modules.nixos.tailscale
-      config.flake.modules.nixos.steam
+          # Set once, at first install, and never bumped afterwards -- these
+          # tell NixOS/Home Manager which stateful defaults to preserve
+          # across upgrades; they are not a "target version".
+          system.stateVersion = "26.05";
+          home-manager.users.${config.my.user}.home.stateVersion = "26.05";
 
-      {
-        home-manager.users.thomas.imports = with config.flake.modules.homeManager; [
-          shell
-          cli-tools
-          ghostty
-          niri
-          noctalia
-          wallpaper
-          firefox
-          git
-          gh
-          ssh
-          onepassword
-          devenv
-          zed
-          zed-opencode
-          discord
-          minecraft
-          mangohud
-          sony-device-center
-          openwave
-          projects-dir
-        ];
-      }
-    ];
-  };
+          programs.steam.remotePlay.openFirewall = true;
+        }
+
+        (lib.mkIf config.host.bulkDisk.enable {
+          disko.devices.disk.bulk = (import ./disko-bulk.nix { }).disko.devices.disk.bulk;
+
+          # Unlocked after boot (not in the initrd, see disko-bulk.nix) and
+          # nofail throughout, so a dead, unplugged or not-yet-formatted HDD
+          # costs a 10s timeout instead of an emergency shell.
+          environment.etc.crypttab.text = ''
+            cryptbulk /dev/disk/by-partlabel/thomas-desktop-bulk - tpm2-device=auto,nofail,x-systemd.device-timeout=10s
+          '';
+          fileSystems."/mnt/hdd".options = [
+            "nofail"
+            "x-systemd.device-timeout=10s"
+          ];
+        })
+      ];
+    };
 }

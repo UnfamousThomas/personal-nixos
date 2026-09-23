@@ -1,4 +1,8 @@
-{ stdenvNoCC, imagemagick }:
+{
+  lib,
+  stdenvNoCC,
+  imagemagick,
+}:
 stdenvNoCC.mkDerivation {
   pname = "gradient-wallpaper";
   version = "1.0.0";
@@ -20,4 +24,9 @@ stdenvNoCC.mkDerivation {
     cp wallpaper.png $out/share/wallpapers/gradient-mocha.png
     runHook postInstall
   '';
+
+  meta = {
+    description = "Catppuccin Mocha base-to-mauve gradient wallpaper, rendered at build time";
+    platforms = lib.platforms.all;
+  };
 }

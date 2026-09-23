@@ -10,7 +10,7 @@
   flake.modules.homeManager.zed-opencode =
     { pkgs, ... }:
     let
-      opencode = inputs.opencode.packages.${pkgs.system}.opencode;
+      opencode = inputs.opencode.packages.${pkgs.stdenv.hostPlatform.system}.opencode;
     in
     {
       home.packages = [ opencode ];

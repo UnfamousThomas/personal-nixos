@@ -6,7 +6,9 @@
         user.name = "UnfamousThomas";
         user.email = "thompalts@gmail.com";
         init.defaultBranch = "main";
-        url."ssh://git@github.com/".insteadOf = "https://github.com/";
+        # Push over SSH, but keep fetching public https URLs anonymously, so
+        # clones work before the SSH key/1Password agent is set up.
+        url."ssh://git@github.com/".pushInsteadOf = "https://github.com/";
       };
     };
   };

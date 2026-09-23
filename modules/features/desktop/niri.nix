@@ -1,28 +1,22 @@
 {
-  flake.modules.nixos.desktop-niri = {
-    programs.niri.enable = true; # wires the session, portal (xdg-desktop-portal-gnome) and a minimal Nautilus dep for the portal's file picker
-  };
+  flake.modules.nixos.desktop-niri =
+    { pkgs, ... }:
+    {
+      programs.niri.enable = true; # wires the session, portal (xdg-desktop-portal-gnome) and niri-session
+      environment.systemPackages = [ pkgs.nautilus ]; # Mod+E
+    };
 
   # Niri itself has no Home Manager module in nixpkgs; its config is a plain
-  # KDL file. `extraInput`/`extraAutostart` let host-specific feature files
-  # (e.g. laptop touchpad tuning) extend this without duplicating the file.
+  # KDL file. myConfig.niri.{extraInput,extraAutostart} (declared in
+  # core/options.nix) let other features extend it without duplicating it.
   flake.modules.homeManager.niri =
     { lib, config, ... }:
+    let
+      # Cursor theme for niri and everything it spawns, from stylix.cursor.
+      cursor = config.stylix.cursor or null;
+    in
     {
-      options.myConfig.niri = {
-        extraInput = lib.mkOption {
-          type = lib.types.lines;
-          default = "";
-          description = "Extra KDL appended inside niri's `input` block.";
-        };
-        extraAutostart = lib.mkOption {
-          type = lib.types.lines;
-          default = "";
-          description = "Extra `spawn-at-startup` lines.";
-        };
-      };
-
-      config.xdg.configFile."niri/config.kdl".text = ''
+      xdg.configFile."niri/config.kdl".text = ''
         input {
             keyboard {
                 xkb {
@@ -46,9 +40,15 @@
             }
         }
 
+        ${lib.optionalString (cursor != null) ''
+          cursor {
+              xcursor-theme "${cursor.name}"
+              xcursor-size ${toString cursor.size}
+          }
+        ''}
+
         prefer-no-csd
 
-        spawn-at-startup "noctalia-shell"
         ${config.myConfig.niri.extraAutostart}
 
         binds {

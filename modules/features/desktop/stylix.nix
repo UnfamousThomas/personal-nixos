@@ -32,8 +32,13 @@
         base0F = "f2cdcd"; # Flamingo
       };
 
-      # Niri has no Stylix target (nothing to theme at the compositor level;
-      # its own accent colors are set directly in niri.nix). Everything
+      # Stylix's Noctalia target turns this into Noctalia's
+      # `wallpaper.default.path` (the base16Scheme above still wins for
+      # colors; the image isn't used to generate a palette).
+      stylix.image = "${pkgs.gradient-wallpaper}/share/wallpapers/gradient-mocha.png";
+
+      # Niri has no Stylix target: its accent colors and cursor are set
+      # directly in niri.nix (the cursor from the values below). Everything
       # else Stylix can reach (GTK, Qt, cursor, fontconfig, and any enabled
       # HM program it has a target for) is themed automatically via
       # `stylix.autoEnable` (on by default) -- and since Home Manager runs

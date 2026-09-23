@@ -24,6 +24,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
     import-tree.url = "github:vic/import-tree";
 
     home-manager.url = "github:nix-community/home-manager";
@@ -34,11 +35,13 @@
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
+    agenix.inputs.home-manager.follows = "home-manager";
+    agenix.inputs.darwin.follows = "";
 
-    # CLI used at install time to generate hosts/<name>/facter.json.
-    # The NixOS-side consumer of that report is nixpkgs' own built-in
-    # `hardware.facter` module (nixos-facter-modules is archived/upstreamed),
-    # so this input is only ever used as a tool, never imported as a module.
+    # CLI the install app (modules/flake/install-app.nix) runs to generate
+    # hosts/<name>/facter.json. The NixOS-side consumer of that report is
+    # nixpkgs' own built-in `hardware.facter` module, so this input is only
+    # ever used as a tool, never imported as a module.
     nixos-facter.url = "github:nix-community/nixos-facter";
     nixos-facter.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -59,6 +62,7 @@
     # OpenWave ships its own maintained flake (rust-overlay + buildRustPackage);
     # use it directly rather than re-packaging.
     openwave.url = "github:rikkichy/openwave";
+    openwave.inputs.nixpkgs.follows = "nixpkgs";
 
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";

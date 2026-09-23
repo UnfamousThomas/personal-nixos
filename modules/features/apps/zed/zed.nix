@@ -29,13 +29,7 @@
           prettierd
         ];
 
-        # Theme and font are deliberately NOT set here: Stylix ships its own
-        # Zed target (github:tinted-theming/base16-zed) that themes Zed
-        # from the same base16Scheme/fonts as everything else -- setting
-        # them here too collided with it (buffer_font_size ended up with
-        # two conflicting definitions and failed to evaluate). One source
-        # of truth for theming beats a hardcoded "Catppuccin Mocha" extension
-        # name that could drift from the actual palette anyway.
+        # Theme and fonts come from Stylix's Zed target (desktop/stylix.nix).
         userSettings = {
           telemetry = {
             metrics = false;
@@ -62,7 +56,34 @@
             };
           };
 
-          formatter = "prettier";
+          # Web/config languages format with the prettierd installed above;
+          # everything else formats with its language server. TS/JS use the
+          # typescript-language-server installed above, not vtsls.
+          languages =
+            let
+              prettierd = {
+                formatter.external = {
+                  command = "prettierd";
+                  arguments = [ "{buffer_path}" ];
+                };
+              };
+              tsServers = {
+                language_servers = [
+                  "typescript-language-server"
+                  "!vtsls"
+                  "..."
+                ];
+              };
+            in
+            {
+              TypeScript = prettierd // tsServers;
+              TSX = prettierd // tsServers;
+              JavaScript = prettierd // tsServers;
+              JSON = prettierd;
+              CSS = prettierd;
+              HTML = prettierd;
+              YAML = prettierd;
+            };
         };
       };
     };

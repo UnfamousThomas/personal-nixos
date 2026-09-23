@@ -8,12 +8,14 @@
     };
   };
 
-  # Theme intentionally not set here: Stylix ships its own Noctalia target
-  # that drives programs.noctalia.settings.theme from the same
-  # base16Scheme as everything else (see desktop/stylix.nix) -- setting it
-  # here too collided with it (conflicting definitions for `theme.source`).
+  # Theme and wallpaper come from Stylix's Noctalia target (desktop/stylix.nix).
   flake.modules.homeManager.noctalia = {
     imports = [ inputs.noctalia.homeModules.default ];
-    programs.noctalia.enable = true;
+    programs.noctalia = {
+      enable = true;
+      # User service bound to graphical-session.target (started by
+      # niri-session).
+      systemd.enable = true;
+    };
   };
 }

@@ -8,75 +8,77 @@ under `modules/` is itself a flake-parts module (auto-discovered via
 contributes whatever it needs to NixOS and/or Home Manager from a single
 file, instead of being split across separate `nixos/`/`home/` trees.
 
-Hosts: `thomas-laptop`, `thomas-desktop`. User: `thomas`. Shared config by
-default; host-specific things (laptop power/touchpad, dual-disk desktop
-layout) only where they actually differ.
+Hosts: `thomas-laptop`, `thomas-desktop`. User: `thomas` (the `my.user`
+option). Shared config by default; host-specific things (laptop
+power/touchpad, dual-disk desktop layout) only where they actually differ.
 
 ## Structure
 
 ```
 flake.nix                    inputs + `import-tree ./modules`
-lib/                          pure helper functions (facter report parsing)
 modules/
   flake/                      flake-parts infrastructure itself
     flake-parts.nix           enables the flake.modules.* option namespace
     nixpkgs.nix, overlays.nix perSystem pkgs, allowUnfree, custom package overlay
+    packages.nix              custom packages as flake outputs + checks
     formatter.nix             treefmt-nix: nixfmt + statix + deadnix
-    devshell.nix               `nix develop` here: tools for maintaining this repo
-    hosts.nix                  brings in hosts/* (see below)
+    devshell.nix              `nix develop` here: tools for maintaining this repo
+    hosts.nix                 turns every hosts/<name>/ into nixosConfigurations.<name>
     templates.nix, install-app.nix
+  roles/                      base, workstation, gaming, laptop: bundles of features
   features/                   the actual configuration, one aspect per file
-    core/                      nix settings, locale, users, boot, networking,
-                                 home-manager wiring, zram
-    security/                  agenix, Estonian ID card
-    desktop/                   niri, greetd, noctalia, stylix, bluetooth, audio, wallpaper
-    terminal/                  ghostty, zsh+starship, CLI tools
-    browser/                   firefox
-    apps/                      git, gh, ssh, 1Password, devenv, docker, tailscale,
-                                 discord, sony-device-center, openwave, zed/
-    gaming/                    steam, minecraft
-    laptop/                    power, touchpad (laptop-only)
+    core/                     options (my.user), hardware report, nix settings,
+                                locale, users, boot, networking, home-manager
+                                wiring, zram
+    security/                 agenix, Estonian ID card
+    desktop/                  niri, greetd, noctalia, stylix, bluetooth, audio
+    terminal/                 ghostty, zsh+starship, CLI tools
+    browser/                  firefox
+    apps/                     git, gh, ssh, 1Password, devenv, docker, tailscale,
+                                discord, sony-device-center, openwave, zed/
+    gaming/                   steam, minecraft
+    laptop/                   power, touchpad (laptop-only)
 hosts/
-  thomas-laptop/               default.nix (assembles the host), disko.nix, facter.json
-  thomas-desktop/               same, dual-disk (SSD + HDD)
-pkgs/                          custom derivations (sony-device-center, gradient-wallpaper)
-install/install.sh             interactive installer
-templates/devenv-project/      `nix flake init -t` template for new projects
-secrets.nix                    agenix: secret -> which keys may decrypt it
+  thomas-laptop/              default.nix (the host module), disko.nix, facter.json
+  thomas-desktop/             same, plus disko-bulk.nix (the optional HDD)
+pkgs/                         custom derivations (sony-device-center, gradient-wallpaper)
+install/install.sh            interactive installer
+templates/devenv-project/     `nix flake init -t` template for new projects
+secrets.nix                   agenix: secret -> which keys may decrypt it
+.github/workflows/check.yml   CI: flake check + building both hosts
 ```
 
 ### How a host is assembled
 
 Each feature file declares `flake.modules.nixos.<name>` and/or
-`flake.modules.homeManager.<name>`. A host's `default.nix`
-(`hosts/<name>/default.nix`) is the only place that lists which of those it
-wants, e.g.:
+`flake.modules.homeManager.<name>`. Roles (`modules/roles/`) bundle
+features: each role is a NixOS module that imports its NixOS features and
+adds its Home Manager features to `home-manager.users.<my.user>`. A host's
+`hosts/<name>/default.nix` defines `flake.modules.nixos.<name>`, which
+imports roles plus anything host-specific:
 
 ```nix
-config.flake.modules.nixos.desktop-niri
-config.flake.modules.nixos.steam
-# ...
-home-manager.users.thomas.imports = with config.flake.modules.homeManager; [
-  shell cli-tools ghostty niri zed # ...
-];
+flake.modules.nixos.thomas-laptop = { config, ... }: {
+  imports = [ nixos.base nixos.workstation nixos.gaming nixos.laptop nixos.openwave ./disko.nix ];
+  hardware.facter.reportPath = ./facter.json;
+  system.stateVersion = "26.05";
+  home-manager.users.${config.my.user}.home.stateVersion = "26.05";
+};
 ```
 
-**That list is the toggle.** A feature is "on" for a host by being listed,
-"off" by not being listed — there's no separate `enable` flag to also flip.
+`modules/flake/hosts.nix` finds every directory under `hosts/` and builds
+`nixosConfigurations.<name>` from that module, with `networking.hostName`
+set to the directory name.
 
 ## Adding a new host
 
-1. `mkdir hosts/thomas-newmachine`
-2. Copy `hosts/thomas-laptop/{default.nix,disko.nix}` as a starting point,
-   adjust the disk layout if needed, and rename the hostname/flake output.
-3. Add a placeholder `facter.json` (copy an existing one; it gets
-   overwritten with the real hardware report at install time).
-4. Add `../../hosts/thomas-newmachine` to `modules/flake/hosts.nix`'s
-   `imports`.
-
-That's the whole "few lines" — everything else (all the feature modules)
-is already shared and just needs to be listed in the new host's
-`home-manager.users.thomas.imports` / top-level `modules` list.
+1. Copy `hosts/thomas-laptop/` to `hosts/<name>/`.
+2. In `default.nix`, rename the module to `flake.modules.nixos.<name>`,
+   pick the roles, and set both `stateVersion`s to the NixOS release you are
+   installing (never bump them later).
+3. Adjust `disko.nix` (disk layout; give the partitions `<name>-` labels).
+4. Keep the placeholder `facter.json`; the installer replaces it with the
+   real report.
 
 ## Adding a new feature module
 
@@ -92,9 +94,8 @@ Create `modules/features/<category>/<name>.nix`:
 If it needs an upstream flake as a module, capture `inputs` in the outer
 function and `imports = [ inputs.foo.nixosModules.default ];` inside the
 inner module (see `modules/features/security/agenix.nix` for the pattern).
-Then list `config.flake.modules.nixos.my-feature` (and/or
-`homeManager.my-feature` under `home-manager.users.thomas.imports`) in
-whichever host(s) should have it.
+Then add it to a role in `modules/roles/`, or import it directly from the
+host(s) that should have it.
 
 ## Installing on a new machine
 
@@ -113,92 +114,101 @@ about something (see "Testing before you commit to real hardware" below).
    ```
    nix --extra-experimental-features "nix-command flakes" run "github:UnfamousThomas/personal-nixos#install"
    ```
-   (or clone the repo yourself and run `./install/install.sh`). If you're
-   re-running after a fix was just pushed, add `--refresh` so it doesn't
-   reuse a cached fetch of an older commit. The script raises the live
-   ISO's tmpfs size cap (default ~50% of RAM) before doing anything else,
-   since evaluating this flake's many inputs can otherwise hit that quota
-   and fail mid-evaluation with a bare "No space left on device" -- if it
-   still happens on a very low-RAM machine, add swap first (e.g. to a spare
-   USB drive; not the target disk, since that's about to be wiped by the
-   same command that would need the swap active on it).
+   (or clone the repo and run `./install/install.sh`, which runs the same
+   app from the checkout). Add `--refresh` if you're re-running right after
+   pushing a fix, so it doesn't reuse a cached fetch of an older commit.
+   The installer uses the disko and nixos-facter versions from
+   `flake.lock`, and installs exactly the commit you ran. It raises the live
+   ISO's tmpfs size cap (default ~50% of RAM) first, since building the
+   system can otherwise fail with a bare "No space left on device"; on a
+   very low-RAM machine, add swap first (e.g. on a spare USB drive, not the
+   target disk).
 3. Pick the host. The script reads that host's disko config from the flake
-   to figure out which disk role(s) it actually needs (e.g. just `main`,
-   or `main` + `bulk`) and prompts once per role -- so a host with one disk
-   gets asked once, a host with several gets asked for each, with no
-   installer changes needed either way. For each prompt it suggests a
-   default (the largest not-yet-picked non-removable device, skipping the
-   live-boot USB itself) -- press Enter to accept it or type a different
-   one -- then shows exactly what's about to be wiped before you confirm.
-   You'll be prompted for a LUKS passphrase per encrypted volume as
-   `disko-install` formats them — pick one you'll remember, TPM2
-   auto-unlock gets enrolled afterwards (see "First boot" below).
-   - `thomas-desktop` normally wants two disks (OS + bulk storage). If the
-     second (HDD) disk isn't connected yet, set `hasBulkDisk = false` in
+   to find which disk role(s) it needs (e.g. just `main`, or `main` +
+   `bulk`) and asks for a device per role. For a single-disk host it
+   suggests the largest internal disk (never a USB or removable disk or the
+   ISO's boot disk); with several roles you pick each one explicitly. It
+   then shows each disk's model, serial and existing partitions before
+   anything is touched. If a disk already has partitions you must type the
+   host name, not just `yes`.
+   - `thomas-desktop` normally wants two disks (OS SSD + bulk HDD). If the
+     HDD isn't connected yet, set `host.bulkDisk.enable = false` in
      `hosts/thomas-desktop/default.nix`, commit and push it, *then* run the
-     installer — `bulk` drops out of its disko config entirely, so it's
-     only asked for `main`. Flip it back to `true`, commit, plug the HDD
-     in, and re-run the installer once it's ready.
-4. The script generates a real hardware report via `nixos-facter` and
-   installs from the flake.
-5. **Before rebooting**, from the printed checkout path:
-   `git add hosts/<host>/facter.json && git commit && git push` — otherwise
-   the next rebuild silently falls back to the placeholder RAM figure baked
-   into the repo (used for swap sizing).
+     installer: it only asks for `main`. See "Adding the bulk disk later".
+4. It asks for the user's login password, generates the host's agenix key
+   and a hardware report (`nixos-facter`), then partitions, formats and
+   installs. You'll be prompted for a LUKS passphrase per encrypted volume;
+   pick one you'll remember, TPM2 auto-unlock gets enrolled afterwards (see
+   "First boot" below).
+5. The installed system has the repo at `~/personal-nixos`, with the real
+   `hosts/<host>/facter.json` as an uncommitted change. Commit and push it
+   after first boot (the installer prints the commands). Until it's
+   committed, rebuilding from GitHub uses the placeholder and warns that
+   firmware and drivers aren't being configured.
 
 Also works with [nixos-anywhere](https://github.com/nix-community/nixos-anywhere)
 for unattended remote installs: nixos-anywhere has its own disko and
 nixos-facter integration (`--disko-mode`, `--generate-hardware-config
-nixos-facter ./facter.json`), but — unlike `disko-install --disk` — it has
+nixos-facter ./facter.json`), but, unlike `disko-install --disk`, it has
 no disk-override flag, so set the real device path directly in
-`hosts/<host>/disko.nix` before invoking it rather than relying on the
-interactive prompt.
+`hosts/<host>/disko.nix` before invoking it. It also doesn't create the
+password file or the agenix host key the installer does.
+
+### Adding the bulk disk later (thomas-desktop)
+
+Never re-run the installer for this: it reformats the SSD too. Format just
+the HDD with the locked disko, from `~/personal-nixos`:
+
+```
+sudo nix run .#disko -- --mode destroy,format,mount --root-mountpoint / \
+  --argstr device /dev/disk/by-id/<the-hdd> hosts/thomas-desktop/disko-bulk.nix
+```
+
+Then set `host.bulkDisk.enable = true`, `sudo nixos-rebuild switch --flake
+.#thomas-desktop`, and enroll the TPM for it (next section). The HDD is
+unlocked after boot rather than in the initrd, with `nofail`, so a missing
+or dead HDD never stops the desktop from booting.
 
 ## First boot
+
+Log in as `thomas` with the password you gave the installer.
 
 1. **TPM2 auto-unlock**: for each LUKS volume on the host (`cryptroot`, and
    `cryptswap`/`cryptbulk` where present), enroll the TPM:
    ```
-   sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+2+7 /dev/disk/by-partlabel/<partition>
+   sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+2+7 /dev/disk/by-partlabel/<host>-<root|swap|bulk>
    ```
    Reboot and confirm it unlocks without a passphrase prompt. If it doesn't
    (e.g. after a firmware update invalidates the PCR measurements), you'll
-   fall back to the passphrase prompt — re-enroll with the command above.
-2. **Hibernate (laptop only)**: try `systemctl hibernate` and confirm it
-   resumes cleanly before relying on it — disko's own swap module flags
-   encrypted-swap + resume as not fully supported upstream (see comments in
-   `hosts/thomas-laptop/disko.nix`); this config wires the missing
-   `resume=` kernel parameter by hand, but treat it as "verify, don't
-   assume."
-3. **agenix key bootstrap** (the chicken-and-egg problem): a fresh host has
-   no secrets yet by design (nothing in this config *requires* one at
-   install time), so there's nothing to unlock on first boot. When you
-   actually add a secret later:
-   - Get the new host's SSH public key: `cat /etc/ssh/ssh_host_ed25519_key.pub`
-   - Get your own: `cat ~/.ssh/id_ed25519.pub`
-   - Add both to `secrets.nix`, list them on whichever secret(s) they
-     should decrypt.
-   - `agenix -e secrets/<name>.age` to write it (needs a private key for at
-     least one already-listed recipient).
-   - `git add secrets.nix secrets/*.age && git commit && git push`, then
-     rebuild the host(s) that need it.
-   - **Rekeying** (after adding a new host/key to an existing secret):
-     `agenix -r` re-encrypts every secret in `secrets.nix` against the
-     current key list. Commit the result.
-4. **1Password**: sign in on first launch (autostarts via niri). Enable the
+   fall back to the passphrase prompt; re-enroll with the command above.
+
+   Known limit: PCRs 0+2+7 don't measure the kernel command line or the
+   initrd, which sit unsigned on the unencrypted ESP. The boot menu editor
+   is disabled, but someone with physical access who replaces the initrd on
+   the ESP still gets the disk unlocked by the TPM. Closing that needs a
+   TPM PIN (`--tpm2-with-pin=yes`) or Secure Boot with signed images
+   (lanzaboote).
+2. **Hibernate (laptop only)**: the lid suspends, then hibernates after 2h
+   (`features/laptop/power.nix`). Try `systemctl hibernate` and confirm it
+   resumes cleanly: disko's own swap module flags encrypted-swap + resume as
+   not fully supported upstream (see comments in
+   `hosts/thomas-laptop/disko.nix`). The swap partition is 8 GiB, sized for
+   8 GiB of RAM.
+3. **1Password**: sign in on first launch (autostarts via niri). Enable the
    SSH agent and, if your existing SSH key is Ed25519 or RSA, import it
    (Settings → Developer → SSH Agent) so `programs.ssh`'s `IdentityAgent`
-   and git commit signing (both wired in `apps/onepassword.nix`) pick it
-   up. Set `programs.git.settings.user.signingKey` to that key's public
-   half. Turn on "Connect with 1Password in the browser" in the app so the
+   picks it up. For commit signing, set `programs.git.signing.key` to the
+   key's public half and `signByDefault = true` in `apps/onepassword.nix`.
+   Turn on "Connect with 1Password in the browser" in the app so the
    Firefox extension pairs with it.
-5. **Tailscale**: `sudo tailscale up`, follow the browser login link.
+4. **Tailscale**: `sudo tailscale up`, follow the browser login link.
    MagicDNS works automatically once authenticated (systemd-resolved is
    already the resolver).
-6. **SSH keys**: if you're bringing an existing key over, copy
+5. **SSH keys**: if you're bringing an existing key over as a file, copy
    `~/.ssh/id_ed25519{,.pub}` into place and `chmod 600` the private key.
-7. **gh auth**: `gh auth login` (interactive OAuth device flow — no secret
-   needed).
+6. **gh auth**: `gh auth login` (interactive OAuth device flow, no secret
+   needed). Then commit and push `hosts/<host>/facter.json` from
+   `~/personal-nixos`.
 
 ## Rebuilding after changes
 
@@ -206,34 +216,62 @@ interactive prompt.
 sudo nixos-rebuild switch --flake .#thomas-laptop   # or #thomas-desktop
 ```
 
-Run from a checkout of this repo (`/etc/nixos` or wherever you cloned it).
-`nix flake check` first is cheap and catches evaluation errors without a
-full build.
+Run from a checkout of this repo (`~/personal-nixos`). Running
+`nix flake check` first catches evaluation errors and broken custom
+packages without building a whole system.
 
 ## Testing before you commit to real hardware
 
-- `nix flake check` — fast, catches evaluation/type errors in every host
-  and every `flake.modules.*` entry without building anything.
+- `nix flake check`: evaluates both hosts and every `flake.modules.*`
+  entry, and builds `checks.*` (the custom packages, treefmt, shellcheck of
+  the installer). It does not build a full system.
+- `nix build .#nixosConfigurations.<host>.config.system.build.toplevel`:
+  builds the whole system. CI (`.github/workflows/check.yml`) does both of
+  these for both hosts on every push.
+- `nix build .#sony-device-center` (or `.#gradient-wallpaper`): one custom
+  package on its own.
 - `sudo nixos-rebuild build-vm --flake .#thomas-desktop` then run the
-  resulting `./result/bin/run-*-vm` — boots the config in a VM so you can
-  poke at Niri/Noctalia/theming without touching real hardware. Note this
-  bypasses disko/LUKS entirely (VM gets a plain virtual disk), so it won't
-  catch disk-layout mistakes.
+  resulting `./result/bin/run-*-vm`: boots the config in a VM so you can
+  poke at Niri/Noctalia/theming without touching real hardware. This
+  bypasses disko/LUKS entirely (the VM gets a plain virtual disk), so it
+  won't catch disk-layout mistakes.
 - For the disk layout itself, disko has its own VM test tooling
-  (`nix run github:nix-community/disko -- --mode disko --dry-run ...` and
-  disko's `disko-tests` flow) if you want to validate partitioning changes
-  before running them against a real disk.
+  (`nix run .#disko -- --mode disko --dry-run ...` and disko's
+  `disko-tests` flow).
 
 ## Secrets (agenix)
 
-See "First boot" step 3 above for the bootstrap/rekey flow. Summary of the
-model: `secrets.nix` at the repo root lists, per encrypted file under
-`secrets/`, which SSH public keys (user and/or host) may decrypt it.
-NixOS-level secrets decrypt against the host's own SSH host key by default;
-Home-Manager-level secrets (wired via `sharedModules` in
-`core/home-manager.nix`) decrypt against `~/.ssh/id_ed25519`. Nothing
-sensitive is ever committed in plaintext — only `.age`-encrypted files and
-the public-key list in `secrets.nix` are.
+`secrets.nix` at the repo root lists, per encrypted file under `secrets/`,
+which age public keys may decrypt it. Nothing sensitive is ever committed
+in plaintext, only `.age` files and the public-key list.
+
+- **Host keys**: each host has its own age key at
+  `/var/lib/agenix/host.key`, generated by the installer, which prints the
+  public half. Later: `sudo age-keygen -y /var/lib/agenix/host.key`.
+  NixOS-level secrets decrypt with it.
+- **User key**: Home-Manager-level secrets (wired via `sharedModules` in
+  `core/home-manager.nix`) decrypt with `~/.config/age/keys.txt`. Create it
+  once per machine with `age-keygen -o ~/.config/age/keys.txt` and add its
+  public half (`age-keygen -y ~/.config/age/keys.txt`) to `secrets.nix`.
+
+Adding a secret: list the recipients on it in `secrets.nix`, `agenix -e
+secrets/<name>.age` to write it (needs the private key of at least one
+already-listed recipient), commit `secrets.nix` and `secrets/*.age`, then
+rebuild the host(s) that need it. After adding a new host or key to an
+existing secret, `agenix -r` re-encrypts every secret against the current
+key list; commit the result.
+
+## Binary cache keys
+
+`nix-community.cachix.org` and `noctalia.cachix.org` are trusted in both
+`flake.nix` (`nixConfig`, used while installing) and
+`features/core/nix-settings.nix`. If a key ever rotates, substitution fails
+with signature errors. Get the current key from Cachix and update both
+places:
+
+```
+curl -s https://app.cachix.org/api/v1/cache/noctalia | jq -r '.publicSigningKeys[]'
+```
 
 ## Custom / self-maintained packages
 
@@ -241,34 +279,24 @@ Most things come straight from nixpkgs. These don't:
 
 | Package | Source | Why | Updating |
 |---|---|---|---|
-| `sony-device-center` | `pkgs/sony-device-center.nix`, custom derivation | No Nix packaging exists upstream | Bump `version`/`tag`, `hash = lib.fakeHash;`, run a build to get the real hash (or `nix-update sony-device-center`). **Currently has a placeholder hash — first build will fail until this is done.** |
+| `sony-device-center` | `pkgs/sony-device-center.nix`, custom derivation | No Nix packaging exists upstream | `git ls-remote --tags https://github.com/marconvcm/sony-device-center.git`, put the new tag's dereferenced (`^{}`) commit in `rev` and bump `version`, then `nix build .#sony-device-center` |
 | `gradient-wallpaper` | `pkgs/gradient-wallpaper.nix` | Trivial, reproducibly generated (ImageMagick) rather than checking in a binary image | Edit the colors/size in the derivation directly |
-| `openwave` | flake input (`github:rikkichy/openwave`) | Upstream maintains a complete, working flake | `nix flake lock --update-input openwave` |
-| `opencode` | flake input (`github:sst/opencode`) | Deliberately not nixpkgs' `opencode` (lags releases); upstream's own flake handles the Bun-compile packaging | `nix flake lock --update-input opencode` |
-| `noctalia` | flake input (`github:noctalia-dev/noctalia`) | Provides the NixOS + Home Manager modules; the bare nixpkgs `noctalia-shell` package lags and has neither module | `nix flake lock --update-input noctalia` |
-
-`sony-device-center`'s CMake install rules weren't fully verified against
-the repo's actual `CMakeLists.txt` (Qt6/CMake C++ apps generally "just
-work" with `stdenv.mkDerivation` + `wrapQtAppsHook`, but confirm the binary
-actually lands at `$out/bin/sony-device-center` on first build and adjust
-`installPhase`/`cmakeFlags` if not).
+| `openwave` | flake input (`github:rikkichy/openwave`) | Upstream maintains a complete, working flake | `nix flake update openwave` |
+| `opencode` | flake input (`github:sst/opencode`) | Deliberately not nixpkgs' `opencode` (lags releases); upstream's own flake handles the Bun-compile packaging | `nix flake update opencode` |
+| `noctalia` | flake input (`github:noctalia-dev/noctalia`) | Provides the NixOS + Home Manager modules and the package they install (served by noctalia.cachix.org) | `nix flake update noctalia` |
 
 ## GUI apps that ended up installed without being named explicitly
 
 Went through this deliberately, per your "list anything I didn't ask for"
 requirement:
 
-- **Nautilus** (file manager) — pulled in automatically by
-  `programs.niri.enable`'s default (`useNautilus = true`, used as the
-  desktop portal's file picker). Rather than add a second GTK file manager
-  on top, it's also what the `Mod+E` keybind opens. If you'd rather use
-  something else (Thunar, pcmanfm, ...), say so and I'll swap the keybind
-  and set `programs.niri.useNautilus = false` to drop the dependency
-  entirely.
-- **No GNOME bloat**: verified `programs.niri.enable` does not pull in
+- **Nautilus** (file manager): installed for the `Mod+E` keybind, and also
+  what the niri portal uses as its file picker. If you'd rather use
+  something else (Thunar, pcmanfm, ...), swap the keybind and the package
+  in `desktop/niri.nix` and set `programs.niri.useNautilus = false`.
+- **No GNOME bloat**: `programs.niri.enable` does not pull in
   `services.desktopManager.gnome`, so none of GNOME Maps/Contacts/Tour/Yelp
-  are present — there was nothing to exclude via
-  `environment.gnome.excludePackages`.
+  are present.
 
 Everything else GUI (Firefox, 1Password, Vesktop, qdigidoc4, Steam, Prism
 Launcher, Lunar Client, Sony Device Center, OpenWave, blueman, tuigreet)
@@ -276,33 +304,10 @@ was explicitly requested or is the direct implementation of something you
 asked for by description (e.g. "a GUI or tray manager" for Bluetooth →
 blueman).
 
-## Verification status
+## Worth checking on first login
 
-`nix flake check` passes cleanly for both hosts (evaluates every
-`flake.modules.*` entry, every package attribute, both `nixosConfigurations`)
-as of this writing -- every package/option name in this repo actually
-exists on nixos-unstable, not just "looks right." Two real bugs surfaced
-and got fixed this way before ever touching real hardware: Stylix ships its
-own Zed and Noctalia targets (theming both from the same `base16Scheme` as
-everything else), which collided with hand-set `theme`/`buffer_font_size`
-values in `zed.nix`/`noctalia.nix` -- removed in favor of letting Stylix
-own those entirely, which is more consistent anyway.
+These can only be observed at runtime:
 
-What's still worth checking on first login, since it can't be evaluated,
-only observed at runtime:
-
-- **Niri KDL config** (`modules/features/desktop/niri.nix`): syntax is
-  modeled closely on niri's own shipped default config, but wasn't run
-  through `niri validate` (no running niri instance in this environment).
-- **Noctalia wallpaper config key** (`modules/features/desktop/wallpaper.nix`):
-  flagged inline — verify against docs.noctalia.dev/noctalia/theming/;
-  Stylix doesn't touch wallpaper, so this one's still hand-set.
-- **`sony-device-center` build**: placeholder hash (`lib.fakeHash`), and its
-  CMake install rules weren't checked against the actual `CMakeLists.txt` —
-  see the custom-packages table above.
-- `programs.ssh.matchBlocks` (used in `apps/ssh.nix` and
-  `apps/onepassword.nix`) is flagged by Home Manager as deprecated in favor
-  of a new `programs.ssh.settings`-based API — still fully functional today
-  (confirmed by `nix flake check` passing), left as-is rather than migrated
-  to a very recently changed replacement API without being able to verify
-  its exact shape first.
+- **Niri KDL config** (`modules/features/desktop/niri.nix`): run `niri
+  validate` once a session is up.
+- **Hibernate** on the laptop (see "First boot").

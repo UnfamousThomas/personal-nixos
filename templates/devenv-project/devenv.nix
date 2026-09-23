@@ -1,7 +1,7 @@
-_:
+{ pkgs, ... }:
 {
   # https://devenv.sh/basics/
-  packages = [ ];
+  packages = [ pkgs.git ];
 
   # Pick what this project needs -- toolchains live here, per-project, not
   # in the machine-wide config.

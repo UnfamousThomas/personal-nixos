@@ -1,12 +1,15 @@
 {
   flake.modules.nixos.steam =
-    { pkgs, ... }:
+    { lib, pkgs, ... }:
     {
       hardware.graphics.enable32Bit = true;
 
       programs.steam = {
         enable = true;
-        remotePlay.openFirewall = true;
+        # Opens the Remote Play ports on every interface. Off by default so a
+        # laptop on public Wi-Fi exposes nothing; hosts that stream at home
+        # turn it on (see hosts/thomas-desktop).
+        remotePlay.openFirewall = lib.mkDefault false;
         gamescopeSession.enable = true; # also enables programs.gamescope
         extraCompatPackages = [ pkgs.proton-ge-bin ];
       };

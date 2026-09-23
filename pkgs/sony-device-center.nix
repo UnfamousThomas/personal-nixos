@@ -15,15 +15,22 @@ stdenv.mkDerivation {
   # No official Nix packaging upstream (verified: no flake.nix/default.nix
   # in the repo). Using builtins.fetchGit pinned to a commit `rev` instead
   # of fetchFromGitHub: Nix verifies the fetch against that commit hash
-  # directly, so there's no separate nix sha256 to compute/update by hand
-  # (no `lib.fakeHash` -> build -> copy-the-real-hash dance). To bump the
-  # version: `git ls-remote --tags https://github.com/marconvcm/sony-device-center.git`,
+  # directly, so there's no separate nix sha256 to compute/update by hand.
+  # To bump the version:
+  # `git ls-remote --tags https://github.com/marconvcm/sony-device-center.git`,
   # take the commit the new tag's `^{}` line points at (the dereferenced
   # commit, not the tag object), update `rev` (and `version`) below.
   src = builtins.fetchGit {
     url = "https://github.com/marconvcm/sony-device-center.git";
     rev = "050f9d2ea7d90f6b96e3b7dac08a9aba801bb354"; # v0.1.5
   };
+
+  # Upstream's root CMakeLists.txt always adds the legacy ImGui client when
+  # Client/ exists; it needs glfw and the Client/imgui git submodule, and
+  # isn't the app this package is for.
+  postPatch = ''
+    rm -rf Client
+  '';
 
   nativeBuildInputs = [
     cmake
@@ -34,10 +41,21 @@ stdenv.mkDerivation {
 
   buildInputs = [
     qt6.qtbase
-    qt6.qtdeclarative # QtQuickControls2 now lives inside qtdeclarative on Qt6, no separate attribute
+    qt6.qtdeclarative # QtQuickControls2 lives inside qtdeclarative on Qt6
     bluez
     dbus
   ];
+
+  # Upstream skips the GUI target with only a warning when it can't find
+  # Qt; fail the build instead.
+  cmakeFlags = [ "-DSONY_REQUIRE_QT=ON" ];
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    runHook preInstallCheck
+    test -x $out/bin/sony-device-center
+    runHook postInstallCheck
+  '';
 
   meta = {
     description = "Linux GUI for controlling Sony Bluetooth headphones (WH-1000XM series, WF series, etc.)";

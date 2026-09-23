@@ -1,0 +1,33 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: accept-flake-config = true
+      # Evaluates both hosts and builds checks.* (custom packages, treefmt,
+      # shellcheck of install/install.sh).
+      - run: nix flake check --print-build-logs
+
+  build-host:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [thomas-laptop, thomas-desktop]
+    steps:
+      # A full desktop closure doesn't fit in the runner's default free space.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: accept-flake-config = true
+      - run: nix build --print-build-logs --no-link .#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel

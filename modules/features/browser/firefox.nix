@@ -19,13 +19,16 @@
     };
   };
 
-  # No other browser is installed anywhere in this config, so this is
-  # unambiguous: Firefox is the only thing that can claim these handlers.
+  # mimeapps.list is HM-managed (read-only): change defaults here, not via
+  # app dialogs.
   flake.modules.homeManager.firefox = {
-    xdg.mimeApps.defaultApplications = {
-      "x-scheme-handler/http" = "firefox.desktop";
-      "x-scheme-handler/https" = "firefox.desktop";
-      "text/html" = "firefox.desktop";
+    xdg.mimeApps = {
+      enable = true;
+      defaultApplications = {
+        "x-scheme-handler/http" = "firefox.desktop";
+        "x-scheme-handler/https" = "firefox.desktop";
+        "text/html" = "firefox.desktop";
+      };
     };
   };
 }

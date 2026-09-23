@@ -8,10 +8,10 @@
       # features/apps/devenv.nix and templates/devenv-project).
       devShells.default = pkgs.mkShell {
         packages = [
-          pkgs.nixfmt-rfc-style
+          pkgs.nixfmt
           pkgs.statix
           pkgs.deadnix
-          pkgs.nix-update
+          pkgs.shellcheck
           inputs.agenix.packages.${system}.default
           inputs.disko.packages.${system}.disko
         ];

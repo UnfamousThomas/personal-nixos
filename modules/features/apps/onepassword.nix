@@ -2,13 +2,15 @@
   # Desktop app + CLI, system-wide. polkitPolicyOwners is what makes polkit
   # (and thus the "Connect with 1Password in the browser" native messaging
   # handshake) trust this user's 1Password instance.
-  flake.modules.nixos.onepassword = {
-    programs._1password.enable = true;
-    programs._1password-gui = {
-      enable = true;
-      polkitPolicyOwners = [ "thomas" ];
+  flake.modules.nixos.onepassword =
+    { config, ... }:
+    {
+      programs._1password.enable = true;
+      programs._1password-gui = {
+        enable = true;
+        polkitPolicyOwners = [ config.my.user ];
+      };
     };
-  };
 
   # SSH agent + git commit signing through 1Password, plus autostart.
   # 1Password's SSH agent only surfaces Ed25519/RSA keys stored in a
@@ -20,16 +22,18 @@
     { pkgs, ... }:
     {
       home.sessionVariables.SSH_AUTH_SOCK = "$HOME/.1password/agent.sock";
-      programs.ssh.matchBlocks."*".extraOptions.IdentityAgent = "~/.1password/agent.sock";
+      programs.ssh.settings."*".IdentityAgent = "~/.1password/agent.sock";
 
-      programs.git.settings = {
-        gpg.format = "ssh";
-        gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign"; # documented /opt/1Password path doesn't exist on NixOS
-        commit.gpgSign = true;
-        # Set this to the public key of whichever key you import into
-        # 1Password's SSH agent (1Password -> Settings -> Developer -> SSH
-        # Agent), e.g. "ssh-ed25519 AAAA...".
-        # user.signingKey = "";
+      programs.git.signing = {
+        format = "ssh";
+        signer = "${pkgs._1password-gui}/bin/op-ssh-sign"; # documented /opt/1Password path doesn't exist on NixOS
+        # Signing needs a key, and there isn't one until 1Password is set up
+        # after install (README "First boot"). Until then signing stays off
+        # so plain `git commit` works. Once the key is in 1Password's SSH
+        # agent: set `key` to its public half ("ssh-ed25519 AAAA...") and
+        # flip signByDefault to true.
+        key = null;
+        signByDefault = false;
       };
 
       myConfig.niri.extraAutostart = ''
