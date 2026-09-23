@@ -101,7 +101,13 @@ whichever host(s) should have it.
 **This wipes the target disk(s).** Test in a VM first if you're not sure
 about something (see "Testing before you commit to real hardware" below).
 
-1. Boot the NixOS ISO on the target machine, get networking up.
+1. Boot the NixOS ISO on the target machine, get networking up. If you need
+   a non-US keyboard layout (e.g. Estonian) and `loadkeys ee` fails with "no
+   such file or directory", the ISO's built-in `kbd` is a trimmed-down copy
+   missing that keymap -- pull the full package from nixpkgs instead:
+   ```
+   nix --extra-experimental-features "nix-command flakes" shell nixpkgs#kbd -c loadkeys ee
+   ```
 2. Run (the installer ISO doesn't have `nix-command`/`flakes` enabled by
    default, hence the flag):
    ```
