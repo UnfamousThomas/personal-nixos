@@ -88,8 +88,8 @@
             Mod+Shift+3 { move-column-to-workspace 3; }
             Mod+Shift+4 { move-column-to-workspace 4; }
             Mod+Shift+5 { move-column-to-workspace 5; }
-            Mod+Page-Down { focus-workspace-down; }
-            Mod+Page-Up   { focus-workspace-up; }
+            Mod+Page_Down { focus-workspace-down; }
+            Mod+Page_Up   { focus-workspace-up; }
 
             Mod+Shift+E { quit; }
             Mod+Shift+Slash { show-hotkey-overlay; }
