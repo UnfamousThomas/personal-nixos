@@ -58,6 +58,10 @@
             Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
             Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
+            Mod+Space hotkey-overlay-title="Open Launcher" { spawn-sh "noctalia msg panel-toggle launcher"; }
+            // Tapping Mod alone opens the launcher too (untested against
+            // `niri validate` -- fix if it turns out not to be valid KDL).
+            Mod { spawn-sh "noctalia msg panel-toggle launcher"; }
 
             Mod+Q { close-window; }
             Mod+Left  { focus-column-left; }

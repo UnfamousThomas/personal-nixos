@@ -11,7 +11,6 @@ in
         nixos.workstation
         nixos.gaming
         nixos.laptop
-        nixos.openwave
         ./disko.nix
       ];
 

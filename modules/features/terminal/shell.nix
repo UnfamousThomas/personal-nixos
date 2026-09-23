@@ -5,6 +5,20 @@
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
       history.size = 10000;
+      # End/Right-arrow already accept an autosuggestion by default; Tab
+      # doesn't (it's bound to normal completion). Make Tab do either,
+      # depending on whether a suggestion is currently showing.
+      initContent = ''
+        _accept_autosuggest_or_complete() {
+          if [[ -n "$POSTDISPLAY" ]]; then
+            zle autosuggest-accept
+          else
+            zle expand-or-complete
+          fi
+        }
+        zle -N _accept_autosuggest_or_complete
+        bindkey '^I' _accept_autosuggest_or_complete
+      '';
       shellAliases = {
         ls = "eza --icons";
         ll = "eza -l --icons --git";
