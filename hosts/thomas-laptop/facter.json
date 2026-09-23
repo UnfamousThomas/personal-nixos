@@ -1,0 +1,16 @@
+{
+  "hardware": {
+    "memory": [
+      {
+        "resources": [
+          {
+            "type": "phys_mem",
+            "range": 8589934592
+          }
+        ]
+      }
+    ],
+    "disk": [],
+    "graphics_card": []
+  }
+}
