@@ -115,7 +115,13 @@ about something (see "Testing before you commit to real hardware" below).
    ```
    (or clone the repo yourself and run `./install/install.sh`). If you're
    re-running after a fix was just pushed, add `--refresh` so it doesn't
-   reuse a cached fetch of an older commit.
+   reuse a cached fetch of an older commit. The script raises the live
+   ISO's tmpfs size cap (default ~50% of RAM) before doing anything else,
+   since evaluating this flake's many inputs can otherwise hit that quota
+   and fail mid-evaluation with a bare "No space left on device" -- if it
+   still happens on a very low-RAM machine, add swap first (e.g. to a spare
+   USB drive; not the target disk, since that's about to be wiped by the
+   same command that would need the swap active on it).
 3. Pick the host, pick the disk(s) (the script prints `lsblk` output),
    confirm the wipe. You'll be prompted for a LUKS passphrase per encrypted
    volume as `disko-install` formats them — pick one you'll remember, TPM2

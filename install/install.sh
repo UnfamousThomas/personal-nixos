@@ -9,6 +9,21 @@
 #   ./install/install.sh
 set -euo pipefail
 
+# The live ISO's / (and /tmp) is a RAM-backed tmpfs, capped by default at
+# ~50% of physical RAM. Evaluating this flake (many inputs: home-manager,
+# disko, agenix, stylix, noctalia, opencode, openwave, treefmt-nix,
+# nixos-facter) can need more room than that default leaves -- well before
+# physical RAM is actually exhausted -- and surfaces as a bare "No space
+# left on device" mid-evaluation. Raise the cap so Nix can use the RAM
+# that's actually there.
+echo "==> Raising tmpfs size cap (default is ~50% of RAM, easily hit mid-eval)"
+for mnt in / /tmp; do
+  fstype="$(findmnt -no FSTYPE "$mnt" 2>/dev/null || true)"
+  if [ "$fstype" = "tmpfs" ]; then
+    sudo mount -o remount,size=90% "$mnt" || true
+  fi
+done
+
 REPO_URL="https://github.com/UnfamousThomas/personal-nixos.git"
 
 if [ -d "$(dirname "$0")/../.git" ]; then
