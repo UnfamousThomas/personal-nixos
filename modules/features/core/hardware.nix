@@ -9,6 +9,15 @@
       isRealReport = config.hardware.facter.report ? system;
     in
     {
+      # Baseline, independent of the facter report: the kernel already
+      # auto-detects whatever PCI/USB hardware is actually present and
+      # auto-loads the matching driver (wifi chip included) -- the only
+      # thing missing on a placeholder report is the firmware *files* that
+      # driver needs to actually bind. Covers this without needing to know
+      # the exact chip. A real facter report can still add anything more
+      # specific (initrd storage drivers, microcode) on top of this.
+      hardware.enableAllFirmware = lib.mkDefault true;
+
       # A real report sets hostPlatform itself (nixpkgs' facter/system.nix);
       # only fall back for a placeholder so evaluation still works.
       nixpkgs.hostPlatform = lib.mkIf (!isRealReport) "x86_64-linux";

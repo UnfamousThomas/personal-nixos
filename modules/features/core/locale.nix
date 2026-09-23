@@ -17,6 +17,6 @@
       LC_TIME = "et_EE.UTF-8";
     };
 
-    console.keyMap = "et";
+    console.keyMap = "ee";
   };
 }
