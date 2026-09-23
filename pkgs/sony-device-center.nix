@@ -25,11 +25,15 @@ stdenv.mkDerivation {
     rev = "050f9d2ea7d90f6b96e3b7dac08a9aba801bb354"; # v0.1.5
   };
 
-  # Upstream's root CMakeLists.txt always adds the legacy ImGui client when
-  # Client/ exists; it needs glfw and the Client/imgui git submodule, and
-  # isn't the app this package is for.
+  # Upstream's root CMakeLists.txt adds the legacy ImGui client as a
+  # subdirectory whenever Client/CMakeLists.txt exists; it needs glfw and
+  # the Client/imgui git submodule, and isn't the app this package is for.
+  # Only remove that file, not the whole Client/ tree: the real GUI app
+  # (apps/device-center/qml.qrc) embeds its device images straight out of
+  # Client/resources/devices/, so deleting the directory wholesale breaks
+  # the build this package actually wants.
   postPatch = ''
-    rm -rf Client
+    rm Client/CMakeLists.txt
   '';
 
   nativeBuildInputs = [
