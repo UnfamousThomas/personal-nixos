@@ -20,8 +20,6 @@
         bindkey '^I' _accept_autosuggest_or_complete
       '';
       shellAliases = {
-        ls = "eza --icons";
-        ll = "eza -l --icons --git";
         la = "eza -la --icons --git";
         lt = "eza --tree --icons";
         cat = "bat";
