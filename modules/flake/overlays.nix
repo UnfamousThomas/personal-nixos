@@ -28,24 +28,24 @@
     # trusted to reflect whether the binary actually works on real target
     # hardware, skip both rather than let an environment-specific crash
     # block the whole system build.
-    opencode = inputs.opencode.packages.${final.stdenv.hostPlatform.system}.opencode.overrideAttrs (old: {
-      postPatch =
-        (old.postPatch or "")
-        + ''
-          substituteInPlace packages/opencode/script/build.ts \
-            --replace-fail 'process.exit(1)' 'console.warn("(smoke test failed; skipped, see modules/flake/overlays.nix)")'
-        '';
-      doInstallCheck = false;
-      # Same crash, different codepath: upstream's postInstall also runs
-      # $out/bin/opencode (for `completion`, to generate shell completion
-      # scripts), which segfaults here too. Every invocation of the binary
-      # crashes inside this sandbox, not just the smoke test specifically
-      # -- consistent with Bun's compiled-binary $bunfs self-unpack trick
-      # tripping over the sandbox's restricted /proc and syscalls, rather
-      # than the binary being unsound. Drop upstream's postInstall entirely
-      # rather than patch around it a second time; shell completions for
-      # opencode aren't worth the fragility.
-      postInstall = "";
-    });
+    opencode =
+      inputs.opencode.packages.${final.stdenv.hostPlatform.system}.opencode.overrideAttrs
+        (old: {
+          postPatch = (old.postPatch or "") + ''
+            substituteInPlace packages/opencode/script/build.ts \
+              --replace-fail 'process.exit(1)' 'console.warn("(smoke test failed; skipped, see modules/flake/overlays.nix)")'
+          '';
+          doInstallCheck = false;
+          # Same crash, different codepath: upstream's postInstall also runs
+          # $out/bin/opencode (for `completion`, to generate shell completion
+          # scripts), which segfaults here too. Every invocation of the binary
+          # crashes inside this sandbox, not just the smoke test specifically
+          # -- consistent with Bun's compiled-binary $bunfs self-unpack trick
+          # tripping over the sandbox's restricted /proc and syscalls, rather
+          # than the binary being unsound. Drop upstream's postInstall entirely
+          # rather than patch around it a second time; shell completions for
+          # opencode aren't worth the fragility.
+          postInstall = "";
+        });
   };
 }

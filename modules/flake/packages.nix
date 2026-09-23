@@ -15,7 +15,7 @@
       checks = {
         inherit (pkgs) sony-device-center gradient-wallpaper;
         install-shellcheck = pkgs.runCommand "install-shellcheck" { } ''
-          ${pkgs.shellcheck}/bin/shellcheck ${../../install/install.sh}
+          ${pkgs.shellcheck}/bin/shellcheck ${../../install/install.sh} ${../../install/remote-install.sh}
           touch $out
         '';
       };

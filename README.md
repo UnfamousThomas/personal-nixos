@@ -184,43 +184,38 @@ flag. `thomas-desktop` still has the `CHANGE_ME_SSD`/`CHANGE_ME_HDD`
 placeholders in its `disko.nix`; hardcode the real device path(s) there
 first if you ever need to do this on the desktop.
 
-From the other machine (needs Nix -- on Windows that means WSL2):
+`install/remote-install.sh` is `install.sh`'s companion for exactly this:
+run it from the other machine (needs Nix -- on Windows that means WSL2),
+not the target. It does the same interactive things `install.sh` does --
+pick a host, pick disk(s), prompt for a login password, generate the
+agenix host key, generate a real hardware report, copy this repo onto the
+installed system -- but drives `nixos-anywhere` instead of `disko-install`,
+so the build happens on the machine running the script, not the target.
 
 1. On the live-booted target: `passwd` (sets a temporary root password,
    gone on next reboot) and `ip a` (its LAN IP). Then, from the other
    machine: `ssh-copy-id root@<ip>`.
-2. nixos-anywhere doesn't generate the login-password file or the agenix
-   host key the way `install.sh` does, so build them yourself as
-   `--extra-files` -- created locally, never written to this repo:
+2. Run it (clones a fresh temporary checkout itself, no local checkout
+   needed):
    ```
-   mkdir -p extra-files/var/lib/user-passwords extra-files/var/lib/agenix
-   nix shell nixpkgs#mkpasswd -c mkpasswd --method=yescrypt \
-     > extra-files/var/lib/user-passwords/thomaspalts
-   nix shell nixpkgs#age -c age-keygen -o extra-files/var/lib/agenix/host.key
-   chmod 600 extra-files/var/lib/user-passwords/thomaspalts extra-files/var/lib/agenix/host.key
+   curl -O https://raw.githubusercontent.com/UnfamousThomas/personal-nixos/main/install/remote-install.sh
+   chmod +x remote-install.sh
+   ./remote-install.sh root@<ip>
    ```
-3. Run it -- no local checkout needed, it installs straight from the
-   flake ref:
-   ```
-   nix --extra-experimental-features "nix-command flakes" run github:nix-community/nixos-anywhere -- \
-     --flake github:UnfamousThomas/personal-nixos#thomas-laptop \
-     --build-on local \
-     --no-disko-deps \
-     --extra-files ./extra-files \
-     root@<ip>
-   ```
-   `--build-on local` is the whole point: it keeps evaluation and building
-   on the machine running this command instead of the RAM-starved target.
-   `--no-disko-deps` skips uploading disko's own dependency closure to the
-   target, trimming what still has to fit there. The target reboots
-   partway through -- nixos-anywhere kexecs it into a fresh minimal
-   installer before formatting -- that's expected, not a failure.
-4. This installs against the placeholder `hosts/thomas-laptop/facter.json`
-   (nixos-anywhere's own hardware-report generation isn't wired up here),
-   so it boots but warns that firmware and drivers aren't configured.
-   Generate and commit a real one same as step 5 above, just run by hand
-   on the installed system: `sudo nix run github:nix-community/nixos-facter -- -o hosts/thomas-laptop/facter.json`
-   from a checkout of the repo, then commit and push it.
+3. Same prompts as `install.sh`: pick the host, pick disk(s) (shown over
+   SSH from the target), confirm the wipe, set a login password. The
+   target reboots partway through -- `nixos-anywhere` kexecs it into a
+   fresh minimal installer before formatting -- that's expected, not a
+   failure.
+4. Prints the same "commit and push the real hardware report" reminder
+   and agenix public key as `install.sh` at the end. The repo copy on the
+   installed system is at whatever `my.user`'s home directory is (e.g.
+   `~thomaspalts/personal-nixos`).
+
+`--build-on local` (baked into the script) is the whole point: it keeps
+evaluation and building on the machine running the script instead of the
+RAM-starved target. `--no-disko-deps` skips uploading disko's own
+dependency closure to the target, trimming what still has to fit there.
 
 ### Adding the bulk disk later (thomas-desktop)
 
