@@ -48,61 +48,6 @@ select HOST in "${HOSTS[@]}"; do
 done
 echo "Selected host: $HOST"
 
-echo "==> Block devices:"
-lsblk -dpno NAME,SIZE,MODEL
-
-# Best-guess default: largest non-removable disk (skips the live-boot USB
-# stick itself, which lsblk reports as removable). Only a suggestion --
-# press Enter to accept it, or type a different device. The wipe
-# confirmation below always shows exactly what was picked before anything
-# is touched.
-best_disk() {
-  local exclude="${1:-}" best="" best_size=0 name rm bytes
-  while read -r name rm bytes; do
-    [ "$rm" = "1" ] && continue
-    [ -n "$exclude" ] && [ "$name" = "$exclude" ] && continue
-    if [ "$bytes" -gt "$best_size" ]; then
-      best_size="$bytes"
-      best="$name"
-    fi
-  done < <(lsblk -dpbno NAME,RM,SIZE)
-  echo "$best"
-}
-
-DEFAULT_DISK="$(best_disk)"
-if [ -n "$DEFAULT_DISK" ]; then
-  read -rp "Target disk for the OS (e.g. /dev/nvme0n1) [Enter for $DEFAULT_DISK]: " DISK
-  DISK="${DISK:-$DEFAULT_DISK}"
-else
-  read -rp "Target disk for the OS (e.g. /dev/nvme0n1): " DISK
-fi
-[ -n "$DISK" ] || {
-  echo "No disk entered, aborting."
-  exit 1
-}
-DISK2=""
-if [ "$HOST" = "thomas-desktop" ]; then
-  DEFAULT_DISK2="$(best_disk "$DISK")"
-  if [ -n "$DEFAULT_DISK2" ]; then
-    read -rp "Second disk for bulk storage (e.g. /dev/sda) [Enter for $DEFAULT_DISK2]: " DISK2
-    DISK2="${DISK2:-$DEFAULT_DISK2}"
-  else
-    read -rp "Second disk for bulk storage (e.g. /dev/sda): " DISK2
-  fi
-  [ -n "$DISK2" ] || {
-    echo "No second disk entered, aborting."
-    exit 1
-  }
-fi
-
-echo
-echo "!! About to WIPE ${DISK} ${DISK2} for host '${HOST}'. This is irreversible."
-read -rp "Type 'yes' to continue: " CONFIRM
-[ "$CONFIRM" = "yes" ] || {
-  echo "Aborted."
-  exit 1
-}
-
 # Passed explicitly (not via NIX_CONFIG/nix.conf) because `sudo` strips the
 # calling shell's environment, and a stock installer ISO doesn't have
 # nix-command/flakes enabled system-wide. --accept-flake-config trusts this
@@ -111,6 +56,77 @@ read -rp "Type 'yes' to continue: " CONFIRM
 # enough to OOM a machine with 8GB of RAM.
 NIX_FLAGS=(--extra-experimental-features "nix-command flakes" --accept-flake-config)
 
+echo "==> Block devices:"
+lsblk -dpno NAME,SIZE,MODEL
+
+# Which disk role(s) this host's disko config actually declares (e.g. just
+# "main", or "main" + "bulk") -- read from the flake itself instead of
+# hardcoded per-host here, so any host with any number of disks just works,
+# and a host that conditionally drops a disk (see thomas-desktop's
+# hasBulkDisk) only ever gets asked about the ones it actually needs.
+echo "==> Reading disk layout for $HOST from the flake"
+mapfile -t DISK_ROLES < <(
+  sudo nix "${NIX_FLAGS[@]}" eval --json \
+    "path:${REPO_DIR}#nixosConfigurations.${HOST}.config.disko.devices.disk" \
+    --apply builtins.attrNames \
+  | tr -d '[]"\n\r\t ' | tr ',' '\n'
+)
+if [ "${#DISK_ROLES[@]}" -eq 0 ]; then
+  echo "Could not determine $HOST's disk layout from the flake, aborting."
+  exit 1
+fi
+
+# Best-guess default: largest non-removable disk not already picked for
+# another role on this host (skips the live-boot USB stick itself, which
+# lsblk reports as removable). Only a suggestion -- press Enter to accept
+# it, or type a different device. The wipe confirmation below always shows
+# exactly what was picked before anything is touched.
+best_disk() {
+  local best="" best_size=0 name rm bytes picked skip
+  while read -r name rm bytes; do
+    [ "$rm" = "1" ] && continue
+    skip=""
+    for picked in "${PICKED_DISKS[@]:-}"; do
+      [ "$name" = "$picked" ] && skip=1
+    done
+    [ -n "$skip" ] && continue
+    if [ "$bytes" -gt "$best_size" ]; then
+      best_size="$bytes"
+      best="$name"
+    fi
+  done < <(lsblk -dpbno NAME,RM,SIZE)
+  echo "$best"
+}
+
+declare -A DISKS
+PICKED_DISKS=()
+for role in "${DISK_ROLES[@]}"; do
+  DEFAULT_DISK="$(best_disk)"
+  if [ -n "$DEFAULT_DISK" ]; then
+    read -rp "Disk for '$role' (e.g. /dev/nvme0n1) [Enter for $DEFAULT_DISK]: " DISK
+    DISK="${DISK:-$DEFAULT_DISK}"
+  else
+    read -rp "Disk for '$role' (e.g. /dev/nvme0n1): " DISK
+  fi
+  [ -n "$DISK" ] || {
+    echo "No disk entered for '$role', aborting."
+    exit 1
+  }
+  DISKS[$role]="$DISK"
+  PICKED_DISKS+=("$DISK")
+done
+
+echo
+echo "!! About to WIPE the following for host '${HOST}'. This is irreversible."
+for role in "${DISK_ROLES[@]}"; do
+  echo "     $role -> ${DISKS[$role]}"
+done
+read -rp "Type 'yes' to continue: " CONFIRM
+[ "$CONFIRM" = "yes" ] || {
+  echo "Aborted."
+  exit 1
+}
+
 echo "==> Generating hardware report with nixos-facter"
 sudo nix "${NIX_FLAGS[@]}" run github:nix-community/nixos-facter -- -o "hosts/$HOST/facter.json"
 
@@ -118,10 +134,10 @@ echo "==> Partitioning and formatting with disko-install"
 echo "    (you will be prompted for a LUKS passphrase for each encrypted"
 echo "    volume -- pick one you'll remember, you can enroll TPM2"
 echo "    auto-unlock afterwards, see README 'First boot')"
-DISKO_ARGS=(--flake "path:${REPO_DIR}#${HOST}" --disk main "$DISK")
-if [ -n "$DISK2" ]; then
-  DISKO_ARGS+=(--disk bulk "$DISK2")
-fi
+DISKO_ARGS=(--flake "path:${REPO_DIR}#${HOST}")
+for role in "${DISK_ROLES[@]}"; do
+  DISKO_ARGS+=(--disk "$role" "${DISKS[$role]}")
+done
 sudo nix "${NIX_FLAGS[@]}" run "github:nix-community/disko/latest#disko-install" -- "${DISKO_ARGS[@]}"
 
 cat <<EOF

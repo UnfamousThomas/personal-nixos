@@ -1,19 +1,31 @@
-{ inputs, config, ... }:
+{ inputs, config, lib, ... }:
+let
+  # Flip to false for a single-disk install before the second (bulk/HDD)
+  # disk is available -- disko.nix then omits the `bulk` disk definition
+  # entirely, so disko-install/nixos-install never try to format or mount
+  # a device that isn't there. Flip back to true, commit, plug the HDD in,
+  # then re-run install.sh (it'll format just that disk) once it's ready.
+  hasBulkDisk = true;
+in
 {
   flake.nixosConfigurations.thomas-desktop = inputs.nixpkgs.lib.nixosSystem {
     system = "x86_64-linux";
     specialArgs = {
-      inherit inputs;
+      inherit inputs hasBulkDisk;
     };
     modules = [
       inputs.disko.nixosModules.disko
       ./disko.nix
-      {
-        networking.hostName = "thomas-desktop";
-        hardware.facter.enable = true;
-        hardware.facter.reportPath = ./facter.json;
-        fileSystems."/mnt/hdd".neededForBoot = false;
-      }
+      (
+        {
+          networking.hostName = "thomas-desktop";
+          hardware.facter.enable = true;
+          hardware.facter.reportPath = ./facter.json;
+        }
+        // lib.optionalAttrs hasBulkDisk {
+          fileSystems."/mnt/hdd".neededForBoot = false;
+        }
+      )
 
       config.flake.modules.nixos.core-nix
       config.flake.modules.nixos.core-locale

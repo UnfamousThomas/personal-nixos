@@ -122,10 +122,23 @@ about something (see "Testing before you commit to real hardware" below).
    still happens on a very low-RAM machine, add swap first (e.g. to a spare
    USB drive; not the target disk, since that's about to be wiped by the
    same command that would need the swap active on it).
-3. Pick the host, pick the disk(s) (the script prints `lsblk` output),
-   confirm the wipe. You'll be prompted for a LUKS passphrase per encrypted
-   volume as `disko-install` formats them — pick one you'll remember, TPM2
+3. Pick the host. The script reads that host's disko config from the flake
+   to figure out which disk role(s) it actually needs (e.g. just `main`,
+   or `main` + `bulk`) and prompts once per role -- so a host with one disk
+   gets asked once, a host with several gets asked for each, with no
+   installer changes needed either way. For each prompt it suggests a
+   default (the largest not-yet-picked non-removable device, skipping the
+   live-boot USB itself) -- press Enter to accept it or type a different
+   one -- then shows exactly what's about to be wiped before you confirm.
+   You'll be prompted for a LUKS passphrase per encrypted volume as
+   `disko-install` formats them — pick one you'll remember, TPM2
    auto-unlock gets enrolled afterwards (see "First boot" below).
+   - `thomas-desktop` normally wants two disks (OS + bulk storage). If the
+     second (HDD) disk isn't connected yet, set `hasBulkDisk = false` in
+     `hosts/thomas-desktop/default.nix`, commit and push it, *then* run the
+     installer — `bulk` drops out of its disko config entirely, so it's
+     only asked for `main`. Flip it back to `true`, commit, plug the HDD
+     in, and re-run the installer once it's ready.
 4. The script generates a real hardware report via `nixos-facter` and
    installs from the flake.
 5. **Before rebooting**, from the printed checkout path:
