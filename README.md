@@ -8,8 +8,8 @@ under `modules/` is itself a flake-parts module (auto-discovered via
 contributes whatever it needs to NixOS and/or Home Manager from a single
 file, instead of being split across separate `nixos/`/`home/` trees.
 
-Hosts: `thomas-laptop`, `thomas-desktop`. User: `thomas` (the `my.user`
-option). Shared config by default; host-specific things (laptop
+Hosts: `thomas-laptop`, `thomas-desktop`. User: `thomaspalts` (the
+`my.user` option). Shared config by default; host-specific things (laptop
 power/touchpad, dual-disk desktop layout) only where they actually differ.
 
 ## Structure
@@ -120,9 +120,12 @@ about something (see "Testing before you commit to real hardware" below).
    The installer uses the disko and nixos-facter versions from
    `flake.lock`, and installs exactly the commit you ran. It raises the live
    ISO's tmpfs size cap (default ~50% of RAM) first, since building the
-   system can otherwise fail with a bare "No space left on device"; on a
-   very low-RAM machine, add swap first (e.g. on a spare USB drive, not the
-   target disk).
+   system can otherwise fail with a bare "No space left on device" well
+   before RAM is actually full. That fix only goes so far, though: on a
+   genuinely low-RAM machine (`thomas-laptop`'s 8GB, for one) the build
+   still runs entirely in the live ISO's memory, and no realistic amount of
+   swap fixes that cleanly -- see "Installing on a low-RAM machine" below
+   for what actually works.
 3. Pick the host. The script reads that host's disko config from the flake
    to find which disk role(s) it needs (e.g. just `main`, or `main` +
    `bulk`) and asks for a device per role. For a single-disk host it
@@ -146,13 +149,69 @@ about something (see "Testing before you commit to real hardware" below).
    committed, rebuilding from GitHub uses the placeholder and warns that
    firmware and drivers aren't being configured.
 
-Also works with [nixos-anywhere](https://github.com/nix-community/nixos-anywhere)
-for unattended remote installs: nixos-anywhere has its own disko and
-nixos-facter integration (`--disko-mode`, `--generate-hardware-config
-nixos-facter ./facter.json`), but, unlike `disko-install --disk`, it has
-no disk-override flag, so set the real device path directly in
-`hosts/<host>/disko.nix` before invoking it. It also doesn't create the
-password file or the agenix host key the installer does.
+### Installing on a low-RAM machine
+
+The installer above builds the entire system closure in the live ISO's
+own RAM before it ever touches the target disk. Raising the tmpfs cap
+(step 2) helps when the machine is hitting an artificial ~50%-of-RAM
+quota with headroom to spare, but it can't manufacture RAM that isn't
+there. `thomas-laptop` has 8GB, and its closure (Steam, the full Qt5 +
+Qt6 stack, Docker, a browser, ...) is comfortably bigger than that once
+unpacked. Swap doesn't reliably save you here either: the obvious place
+to put it is the target disk, but disko wipes that the moment it formats,
+and the live boot USB usually can't be repartitioned safely while it's
+mounted and in use.
+
+The real fix is to not build on the target machine at all. Drive the
+install from a second, more capable machine with
+[nixos-anywhere](https://github.com/nix-community/nixos-anywhere): it
+builds locally there and only copies the finished closure to the target
+over SSH.
+
+`thomas-laptop/disko.nix` has its device hardcoded (`/dev/nvme0n1`, its
+only disk) specifically so this needs no local edits -- unlike
+`disko-install --disk`, nixos-anywhere has no per-role disk-override
+flag. `thomas-desktop` still has the `CHANGE_ME_SSD`/`CHANGE_ME_HDD`
+placeholders in its `disko.nix`; hardcode the real device path(s) there
+first if you ever need to do this on the desktop.
+
+From the other machine (needs Nix -- on Windows that means WSL2):
+
+1. On the live-booted target: `passwd` (sets a temporary root password,
+   gone on next reboot) and `ip a` (its LAN IP). Then, from the other
+   machine: `ssh-copy-id root@<ip>`.
+2. nixos-anywhere doesn't generate the login-password file or the agenix
+   host key the way `install.sh` does, so build them yourself as
+   `--extra-files` -- created locally, never written to this repo:
+   ```
+   mkdir -p extra-files/var/lib/user-passwords extra-files/var/lib/agenix
+   nix shell nixpkgs#mkpasswd -c mkpasswd --method=yescrypt \
+     > extra-files/var/lib/user-passwords/thomaspalts
+   nix shell nixpkgs#age -c age-keygen -o extra-files/var/lib/agenix/host.key
+   chmod 600 extra-files/var/lib/user-passwords/thomaspalts extra-files/var/lib/agenix/host.key
+   ```
+3. Run it -- no local checkout needed, it installs straight from the
+   flake ref:
+   ```
+   nix --extra-experimental-features "nix-command flakes" run github:nix-community/nixos-anywhere -- \
+     --flake github:UnfamousThomas/personal-nixos#thomas-laptop \
+     --build-on local \
+     --no-disko-deps \
+     --extra-files ./extra-files \
+     root@<ip>
+   ```
+   `--build-on local` is the whole point: it keeps evaluation and building
+   on the machine running this command instead of the RAM-starved target.
+   `--no-disko-deps` skips uploading disko's own dependency closure to the
+   target, trimming what still has to fit there. The target reboots
+   partway through -- nixos-anywhere kexecs it into a fresh minimal
+   installer before formatting -- that's expected, not a failure.
+4. This installs against the placeholder `hosts/thomas-laptop/facter.json`
+   (nixos-anywhere's own hardware-report generation isn't wired up here),
+   so it boots but warns that firmware and drivers aren't configured.
+   Generate and commit a real one same as step 5 above, just run by hand
+   on the installed system: `sudo nix run github:nix-community/nixos-facter -- -o hosts/thomas-laptop/facter.json`
+   from a checkout of the repo, then commit and push it.
 
 ### Adding the bulk disk later (thomas-desktop)
 
@@ -171,7 +230,7 @@ or dead HDD never stops the desktop from booting.
 
 ## First boot
 
-Log in as `thomas` with the password you gave the installer.
+Log in as `thomaspalts` with the password you gave the installer.
 
 1. **TPM2 auto-unlock**: for each LUKS volume on the host (`cryptroot`, and
    `cryptswap`/`cryptbulk` where present), enroll the TPM:
@@ -287,8 +346,8 @@ Most things come straight from nixpkgs. These don't:
 
 ## GUI apps that ended up installed without being named explicitly
 
-Went through this deliberately, per your "list anything I didn't ask for"
-requirement:
+A few things showed up as side effects of other choices rather than being
+picked directly, listed here so they're not a surprise:
 
 - **Nautilus** (file manager): installed for the `Mod+E` keybind, and also
   what the niri portal uses as its file picker. If you'd rather use
