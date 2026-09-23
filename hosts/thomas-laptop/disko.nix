@@ -1,12 +1,13 @@
 {
-  # `device` is a placeholder -- always overridden at install time via
-  # `disko-install --disk main <device>` (see install/install.sh). Never
-  # hardcode a real device path here. Partition labels carry the host name
-  # so another machine's disk plugged in can never claim the same
-  # /dev/disk/by-partlabel/ path as this host's root, swap or ESP.
+  # Hardcoded rather than left as a placeholder overridden via
+  # `disko-install --disk main <device>`, so `nixos-anywhere` (which has no
+  # per-role disk-override flag) can install straight from this flake ref
+  # with no local edits. Only ever the one NVMe drive on this laptop.
+  # Partition labels carry the host name so another machine's disk plugged
+  # in can never claim the same /dev/disk/by-partlabel/ path.
   disko.devices.disk.main = {
     type = "disk";
-    device = "/dev/disk/by-id/CHANGE_ME";
+    device = "/dev/nvme0n1";
     content = {
       type = "gpt";
       partitions = {

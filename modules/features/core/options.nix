@@ -6,7 +6,7 @@
     {
       options.my.user = lib.mkOption {
         type = lib.types.str;
-        default = "thomas";
+        default = "thomaspalts";
         description = "Name of the single interactive user this machine is set up for.";
       };
     };
