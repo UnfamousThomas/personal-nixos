@@ -19,6 +19,8 @@ in
         onepassword
         docker
         tailscale
+        keyd
+        work
       ];
       home-manager.users.${config.my.user}.imports = [ homeManager.workstation ];
     };

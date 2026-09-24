@@ -361,7 +361,7 @@ picked directly, listed here so they're not a surprise:
   `services.desktopManager.gnome`, so none of GNOME Maps/Contacts/Tour/Yelp
   are present.
 
-Everything else GUI (Firefox, 1Password, Discord, qdigidoc4, Steam, Prism
+Everything else GUI (Firefox, 1Password, Vesktop, Slack, qdigidoc4, Steam, Prism
 Launcher, Lunar Client, Sony Device Center, OpenWave, blueman, tuigreet)
 was explicitly requested or is the direct implementation of something you
 asked for by description (e.g. "a GUI or tray manager" for Bluetooth →

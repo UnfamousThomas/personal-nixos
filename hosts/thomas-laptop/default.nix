@@ -9,7 +9,7 @@ in
       imports = [
         nixos.base
         nixos.workstation
-        nixos.gaming
+        nixos.gaming-minecraft
         nixos.laptop
         ./disko.nix
       ];

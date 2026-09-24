@@ -9,7 +9,8 @@ in
       imports = [
         nixos.base
         nixos.workstation
-        nixos.gaming
+        nixos.gaming-steam
+        nixos.gaming-minecraft
         nixos.openwave
         ./disko.nix
       ];

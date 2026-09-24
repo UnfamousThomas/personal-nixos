@@ -21,6 +21,12 @@
             keyboard {
                 xkb {
                     layout "ee"
+                    // Plain "ee" makes ~ (and other diacritic-composing
+                    // keys) a dead key needing a second press (e.g.
+                    // Space) to produce the bare character -- useful for
+                    // typing Estonian prose, annoying for shell/terminal
+                    // use. nodeadkeys trades that away for direct output.
+                    variant "nodeadkeys"
                 }
             }
             ${config.myConfig.niri.extraInput}
@@ -32,7 +38,9 @@
             default-column-width { proportion ${toString config.myConfig.niri.defaultColumnWidthProportion}; }
             focus-ring {
                 width 2
-                active-color "#a6e3a1"
+                // Muted sage rather than the raw palette green: same
+                // accent family, much less shouty as a window border.
+                active-color "#7d9c7a"
                 inactive-color "#45475a"
             }
             border {
@@ -56,7 +64,7 @@
             Mod+D hotkey-overlay-title="Open Firefox" { spawn "firefox"; }
             Mod+E hotkey-overlay-title="Open File Manager" { spawn "nautilus"; }
             Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
-            Mod+C hotkey-overlay-title="Open Discord" { spawn "discord"; }
+            Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
             // Mod+Space was already toggle-window-floating (below); niri
             // also doesn't accept a bare Mod-alone bind ("invalid key:
