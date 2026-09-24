@@ -135,15 +135,19 @@ in
           # HDD is absent. The Nautilus bookmark above points at this dir.
           systemd.services.hdd-bulk-dir = {
             description = "Create the user-writable Bulk directory on the HDD";
-            after = [ "local-fs.target" ];
-            wants = [ "local-fs.target" ];
+            # Order after the mount unit itself (not just local-fs.target):
+            # the HDD is unlocked in stage 2 via crypttab and can come up a
+            # couple of seconds after local-fs.target. mountpoint is not in
+            # the service's PATH, so read /proc/mounts with grep instead.
+            after = [ "local-fs.target" "mnt-hdd.mount" ];
+            wants = [ "local-fs.target" "mnt-hdd.mount" ];
             wantedBy = [ "multi-user.target" ];
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
             };
             script = ''
-              if mountpoint -q /mnt/hdd; then
+              if grep -q ' /mnt/hdd ' /proc/mounts; then
                 install -d -o thomaspalts -g users -m 0755 /mnt/hdd/Bulk
               fi
             '';
