@@ -385,6 +385,17 @@ major changes, bump `electron_44` too. Login and the app itself are untested
 on real hardware; the tray icon may be missing, since the app looks for its
 icons next to Electron's resources.
 
+## Mirror repos
+
+`modules/features/apps/mirror-repos.nix` clones the Mirror Studios repos
+(deployments, infra, mono-services, falloria-network, github-actions,
+proto-specs, fallernetes-operator) into `~/projects/Mirror` over SSH. A user
+service does it at login and retries every minute until it works, which
+means until the network is up and 1Password is unlocked (its SSH agent only
+serves keys then). Repos that already exist are skipped, never touched. Run
+`mirror-clone` to do it by hand; to add a repo, append it to the list in that
+file.
+
 ## Worth checking on first login
 
 These can only be observed at runtime:

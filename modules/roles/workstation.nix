@@ -37,5 +37,6 @@ in
     discord
     sony-device-center
     hidden-apps
+    mirror-repos
   ];
 }
