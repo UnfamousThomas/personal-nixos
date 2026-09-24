@@ -191,12 +191,40 @@ done
 )
 unset PW1 PW2
 
-echo "==> Generating this host's agenix key"
-(
-  umask 077
-  age-keygen -o "$STAGE/host.key" 2>/dev/null
-)
-AGE_PUBKEY="$(age-keygen -y "$STAGE/host.key")"
+# The agenix key. Normally the one shared key (README "Secrets"), so secrets
+# decrypt on first boot: baked into a locally built ISO, or pasted here.
+# Falling back to a fresh per-host key means re-encrypting the secrets for it.
+echo "==> agenix key"
+ISO_AGE_KEY=/etc/personal-nixos/age.key
+while :; do
+  AGE_SHARED=1
+  if [ -r "$ISO_AGE_KEY" ]; then
+    echo "   using the key baked into this ISO"
+    (
+      umask 077
+      cp "$ISO_AGE_KEY" "$STAGE/host.key"
+    )
+  else
+    read -rsp "Paste the shared age key (AGE-SECRET-KEY-1...), or Enter to generate a new one for this host: " AGE_IN
+    echo
+    (
+      umask 077
+      if [ -n "$AGE_IN" ]; then
+        printf '%s\n' "$AGE_IN" >"$STAGE/host.key"
+      else
+        age-keygen -o "$STAGE/host.key" 2>/dev/null
+      fi
+    )
+    [ -n "$AGE_IN" ] || AGE_SHARED=""
+    unset AGE_IN
+  fi
+  if AGE_PUBKEY="$(age-keygen -y "$STAGE/host.key" 2>/dev/null)"; then
+    break
+  fi
+  echo "That isn't a valid age key, try again."
+  rm -f "$STAGE/host.key"
+  [ ! -r "$ISO_AGE_KEY" ] || exit 1
+done
 sudo chown -R root:root "$STAGE"
 
 echo "==> Generating hardware report with nixos-facter"
@@ -249,9 +277,13 @@ Commit and push it after first boot, once GitHub access is set up (README
   git commit -m "hosts/$HOST: real hardware report"
   git push origin HEAD:main
 
-This host's agenix public key (for secrets.nix):
-
-  $AGE_PUBKEY
+$(
+  if [ -n "$AGE_SHARED" ]; then
+    echo "The shared age key is in place, so secrets decrypt on first boot."
+  else
+    printf '%s\n\n  %s\n' "This host got its own age key. To let it decrypt the secrets, add this public key to a secrets recipient list (secrets.nix) and run agenix -r:" "$AGE_PUBKEY"
+  fi
+)
 
 Also see README "First boot" for: enrolling TPM2 auto-unlock on the LUKS
 volume(s) (systemd-cryptenroll), 1Password sign-in, Tailscale login, and

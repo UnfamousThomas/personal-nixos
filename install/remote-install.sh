@@ -189,12 +189,41 @@ done
 )
 unset PW1 PW2
 
-echo "==> Generating this host's agenix key"
-(
-  umask 077
-  nix "${NIX_FLAGS[@]}" shell nixpkgs#age -c age-keygen -o "$STAGE$AGE_KEY_FILE" 2>/dev/null
-)
-AGE_PUBKEY="$(nix "${NIX_FLAGS[@]}" shell nixpkgs#age -c age-keygen -y "$STAGE$AGE_KEY_FILE")"
+# The agenix key. Normally the one shared key (README "Secrets"), so secrets
+# decrypt on first boot: read from $LOCAL_AGE_KEY if that file exists, else
+# pasted here. Falling back to a fresh per-host key means re-encrypting the
+# secrets for it.
+echo "==> agenix key"
+LOCAL_AGE_KEY="${PERSONAL_NIXOS_AGE_KEY:-$HOME/.config/personal-nixos/age.key}"
+while :; do
+  AGE_SHARED=1
+  if [ -r "$LOCAL_AGE_KEY" ]; then
+    echo "   using $LOCAL_AGE_KEY"
+    (
+      umask 077
+      cp "$LOCAL_AGE_KEY" "$STAGE$AGE_KEY_FILE"
+    )
+  else
+    read -rsp "Paste the shared age key (AGE-SECRET-KEY-1...), or Enter to generate a new one for this host: " AGE_IN
+    echo
+    (
+      umask 077
+      if [ -n "$AGE_IN" ]; then
+        printf '%s\n' "$AGE_IN" >"$STAGE$AGE_KEY_FILE"
+      else
+        nix "${NIX_FLAGS[@]}" shell nixpkgs#age -c age-keygen -o "$STAGE$AGE_KEY_FILE" 2>/dev/null
+      fi
+    )
+    [ -n "$AGE_IN" ] || AGE_SHARED=""
+    unset AGE_IN
+  fi
+  if AGE_PUBKEY="$(nix "${NIX_FLAGS[@]}" shell nixpkgs#age -c age-keygen -y "$STAGE$AGE_KEY_FILE" 2>/dev/null)"; then
+    break
+  fi
+  echo "That isn't a valid age key, try again."
+  rm -f "$STAGE$AGE_KEY_FILE"
+  [ ! -r "$LOCAL_AGE_KEY" ] || exit 1
+done
 
 echo "==> Staging a copy of the repo for $HOST_HOME/personal-nixos on the installed system"
 cp -r "$REPO_DIR" "$STAGE$HOST_HOME/personal-nixos"
@@ -233,9 +262,13 @@ placeholder). Commit and push it once GitHub access is set up there
   git commit -m "hosts/$HOST: real hardware report"
   git push origin HEAD:main
 
-This host's agenix public key (for secrets.nix):
-
-  $AGE_PUBKEY
+$(
+  if [ -n "$AGE_SHARED" ]; then
+    echo "The shared age key is in place, so secrets decrypt on first boot."
+  else
+    printf '%s\n\n  %s\n' "This host got its own age key. To let it decrypt the secrets, add this public key to a secrets recipient list (secrets.nix) and run agenix -r:" "$AGE_PUBKEY"
+  fi
+)
 
 Also see README "First boot" for: enrolling TPM2 auto-unlock on the LUKS
 volume(s) (systemd-cryptenroll), 1Password sign-in, Tailscale login, and

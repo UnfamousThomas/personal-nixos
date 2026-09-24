@@ -3,3 +3,5 @@ result-*
 .direnv/
 .devenv/
 *.swp
+personal-nixos-installer-PRIVATE.iso
+*.iso

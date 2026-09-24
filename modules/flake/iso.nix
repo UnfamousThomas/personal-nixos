@@ -22,6 +22,19 @@
           # mkDefault -- needs mkForce, not just a later definition, to win.
           services.getty.autologinUser = lib.mkForce "root";
 
+          # Only for a private local build (install/build-iso.sh sets this
+          # and passes --impure): bakes the shared age key into the ISO so
+          # the installer doesn't ask for it. Unset in CI, so the published
+          # ISO never contains a key.
+          environment.etc."personal-nixos/age.key" =
+            let
+              keyFile = builtins.getEnv "PERSONAL_NIXOS_AGE_KEY_FILE";
+            in
+            lib.mkIf (keyFile != "") {
+              text = builtins.readFile keyFile;
+              mode = "0400";
+            };
+
           # Runs once per login shell on the main console. Gives wired
           # DHCP a few seconds to settle; if nothing's up by then, asks
           # (default no) whether to launch `nmtui` for Wi-Fi right there,
