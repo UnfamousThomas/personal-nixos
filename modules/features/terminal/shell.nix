@@ -18,6 +18,12 @@
         }
         zle -N _accept_autosuggest_or_complete
         bindkey '^I' _accept_autosuggest_or_complete
+
+        # Ctrl+Left/Right jump by word. Terminals send these as
+        # ESC [ 1 ; 5 D/C, which zsh has no binding for by default, so the
+        # tail ("5D") got typed as literal characters.
+        bindkey '^[[1;5C' forward-word
+        bindkey '^[[1;5D' backward-word
       '';
       shellAliases = {
         la = "eza -la --icons --git";
