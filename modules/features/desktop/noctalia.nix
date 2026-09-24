@@ -39,6 +39,13 @@
             tooltip_format = "{:%A, %d %B %Y}";
           };
 
+          # Weather lives in the control-center menu (Weather tab: today's
+          # current conditions plus the 6-day forecast). The service is
+          # enabled by default; all it needs is a location. Tallinn
+          # resolves via the geocoder because auto_locate is false.
+          location.address = "Tallinn, EE";
+          weather.enabled = true;
+
           # The wallpaper panel's Dark/Light/Auto switcher is hidden
           # (overlays.nix), so the mode is fixed here.
           theme.mode = "dark";

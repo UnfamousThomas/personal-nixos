@@ -52,6 +52,16 @@
           "memory"
           "swap"
           "disk"
+          {
+            type = "weather";
+            location = "Tallinn";
+            # wttr.in format tokens; a literal "+" renders as a space.
+            # %t temp, %C condition, %f feels-like, %w wind
+            # (temperature unit comes from fastfetch's default metric
+            # display, so no "&m" suffix is needed).
+            outputFormat = "%l:+%t+%C+(feels+%f)+wind+%w";
+            timeout = 5000;
+          }
           "colors"
           "break"
         ];
