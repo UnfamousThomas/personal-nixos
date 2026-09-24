@@ -138,8 +138,13 @@
             Mod+Shift+Up    hotkey-overlay-title="Move window up"    { move-window-up; }
             Mod+Ctrl+Left  hotkey-overlay-title="Focus monitor left"  { focus-monitor-left; }
             Mod+Ctrl+Right hotkey-overlay-title="Focus monitor right" { focus-monitor-right; }
-            Mod+Ctrl+Shift+Left  hotkey-overlay-title="Push column to left monitor"  { move-column-to-monitor-left; }
-            Mod+Ctrl+Shift+Right hotkey-overlay-title="Push column to right monitor" { move-column-to-monitor-right; }
+            Mod+Ctrl+Shift+Left  { move-column-to-monitor-left; }
+            Mod+Ctrl+Shift+Right { move-column-to-monitor-right; }
+            // Alt is shorter than Ctrl+Shift; keep Ctrl reserved for
+            // focus-monitor above. (Ctrl+Shift both still work, but stay
+            // out of the hotkey overlay so the short combo is advertised.)
+            Mod+Alt+Left  hotkey-overlay-title="Push column to left monitor"  { move-column-to-monitor-left; }
+            Mod+Alt+Right hotkey-overlay-title="Push column to right monitor" { move-column-to-monitor-right; }
 
             Mod+Comma  hotkey-overlay-title="Stack window into column"  { consume-window-into-column; }
             Mod+Period hotkey-overlay-title="Unstack window from column" { expel-window-from-column; }
@@ -169,12 +174,12 @@
             // every workspace, which reads as a desktop grid when workspaces
             // only hold one window each -- so this is the better daily switch.
             Mod+Tab hotkey-overlay-title="Switch window" { spawn-sh "noctalia msg window-switcher"; }
-            // "Scroll" between windows by holding Mod and wheeling. Cycles within
-            // the current workspace only (down-or-top wraps around); it never
-            // switches workspaces, so a single-window workspace simply holds
-            // still. Direction follows niri's natural-scroll setting.
-            Mod+WheelScrollDown { focus-window-down-or-top; }
-            Mod+WheelScrollUp   { focus-window-up-or-bottom; }
+            // "Rotate" between columns by holding Mod and wheeling. Columns
+            // wrap around, so on the two-monitor setup scroll cycles left
+            // monitor <-> right monitor. Nominal cooldown so fast wheel spin
+            // doesn't rocket past the target.
+            Mod+WheelScrollDown cooldown-ms=150 hotkey-overlay-title="Rotate column right" { focus-column-right; }
+            Mod+WheelScrollUp   cooldown-ms=150 hotkey-overlay-title="Rotate column left"  { focus-column-left; }
 
             Mod+Shift+E { quit; }
             // Mod+F1 works on any layout; Slash is Shift+7 on Estonian.
