@@ -166,10 +166,12 @@
             // (closest niri has to Windows' Win+Tab). Scroll through it with
             // the wheel or arrow keys while it's open.
             Mod+Tab hotkey-overlay-title="Overview of all windows" { toggle-overview; }
-            // "Scroll" between workspaces by holding Mod and wheeling;
-            // direction follows niri's natural-scroll setting.
-            Mod+WheelScrollDown { focus-workspace-down; }
-            Mod+WheelScrollUp   { focus-workspace-up; }
+            // "Scroll" between windows by holding Mod and wheeling: moves
+            // through the current column, rolling into the next workspace
+            // only when the column's end is reached. Direction follows
+            // niri's natural-scroll setting.
+            Mod+WheelScrollDown { focus-window-or-workspace-down; }
+            Mod+WheelScrollUp   { focus-window-or-workspace-up; }
 
             Mod+Shift+E { quit; }
             // Mod+F1 works on any layout; Slash is Shift+7 on Estonian.
