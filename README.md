@@ -370,21 +370,20 @@ blueman).
 ## Work apps (Slack, Granola)
 
 Slack is a plain package. Granola has no Linux build, so
-`modules/features/apps/work.nix` installs `granola-install`, a wrapper
-around the community [Granola-for-Linux](https://github.com/tirtha4/Granola-for-Linux)
-script (copy in `pkgs/granola-install.sh`, with one change: its cache lives
-in `~/.cache/granola`). It repackages Granola's macOS release, so:
+`pkgs/granola.nix` repackages the pinned macOS release, following the
+community [Granola-for-Linux](https://github.com/tirtha4/Granola-for-Linux)
+script: the app's `app.asar` runs on nixpkgs' Electron of the same major
+version, the platform string is patched (their API rejects `linux`), and
+Granola's fork of `better-sqlite3-multiple-ciphers` is rebuilt for Linux
+against Electron's headers. The build ends with a check that an encrypted
+database and the fork's `updateHook` work. Nothing to install by hand: it's
+in the workstation role and shows up as "Granola" in the launcher.
 
-1. Download the macOS `.dmg` from granola.ai by hand.
-2. Run `granola-install ~/Downloads/Granola.dmg`. It fetches a matching
-   Linux Electron and builds a native module, so it needs network and takes
-   a few minutes.
-3. Launch Granola from the app launcher (the script writes its own
-   `.desktop` entry). Re-run the command to update after a new release.
-
-The downloaded Electron is a generic Linux binary, which is why `nix-ld` is
-enabled (`work.nix`). Not tested end to end yet: if Granola won't start,
-the likeliest cause is a missing library in that `nix-ld` list.
+To update, bump `version` and the two hashes in `pkgs/granola.nix` (the
+current version and sha512 come from Granola's update feed); if the Electron
+major changes, bump `electron_44` too. Login and the app itself are untested
+on real hardware; the tray icon may be missing, since the app looks for its
+icons next to Electron's resources.
 
 ## Worth checking on first login
 

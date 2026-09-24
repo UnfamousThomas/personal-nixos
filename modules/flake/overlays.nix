@@ -6,6 +6,7 @@
   flake.overlays.default = final: _prev: {
     sony-device-center = final.callPackage ../../pkgs/sony-device-center.nix { };
     gradient-wallpaper = final.callPackage ../../pkgs/gradient-wallpaper.nix { };
+    granola = final.callPackage ../../pkgs/granola.nix { };
 
     # Upstream's test suite includes a case that spawns a bwrap sandbox and
     # tries to configure a loopback interface inside it -- needs network
