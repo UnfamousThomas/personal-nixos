@@ -17,6 +17,7 @@
           # Always interrupts, selection or not (\x03 is the ^C byte).
           "ctrl+shift+c=text:\\x03"
           "ctrl+v=paste_from_clipboard"
+          "ctrl+t=new_tab"
         ];
       };
     };

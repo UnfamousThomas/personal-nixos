@@ -3,7 +3,13 @@
     { pkgs, ... }:
     {
       programs.niri.enable = true; # wires the session, portal (xdg-desktop-portal-gnome) and niri-session
-      environment.systemPackages = [ pkgs.nautilus ]; # Mod+E
+      environment.systemPackages = [
+        pkgs.nautilus # Mod+E
+        # niri integrates xwayland-satellite (>= 0.7) automatically when it's
+        # in PATH: it exports $DISPLAY and spawns it on demand for X11-only
+        # apps like Steam ("Unable to open a connection to X" otherwise).
+        pkgs.xwayland-satellite
+      ];
     };
 
   # Niri itself has no Home Manager module in nixpkgs; its config is a plain
@@ -68,6 +74,8 @@
 
         prefer-no-csd
 
+        ${config.myConfig.niri.extraOutput}
+
         ${config.myConfig.niri.extraAutostart}
 
         binds {
@@ -84,23 +92,27 @@
             Mod+A { spawn-sh "noctalia msg panel-toggle launcher"; }
 
             Mod+Q { close-window; }
-            Mod+Left  { focus-column-left; }
-            Mod+Right { focus-column-right; }
-            Mod+Down  { focus-window-down; }
-            Mod+Up    { focus-window-up; }
-            Mod+Shift+Left  { move-column-left; }
-            Mod+Shift+Right { move-column-right; }
-            Mod+Shift+Down  { move-window-down; }
-            Mod+Shift+Up    { move-window-up; }
+            Mod+Left  hotkey-overlay-title="Focus column left"  { focus-column-left; }
+            Mod+Right hotkey-overlay-title="Focus column right" { focus-column-right; }
+            Mod+Down  hotkey-overlay-title="Focus window down"  { focus-window-down; }
+            Mod+Up    hotkey-overlay-title="Focus window up"    { focus-window-up; }
+            Mod+Shift+Left  hotkey-overlay-title="Move column left"  { move-column-left; }
+            Mod+Shift+Right hotkey-overlay-title="Move column right" { move-column-right; }
+            Mod+Shift+Down  hotkey-overlay-title="Move window down"  { move-window-down; }
+            Mod+Shift+Up    hotkey-overlay-title="Move window up"    { move-window-up; }
+            Mod+Ctrl+Left  hotkey-overlay-title="Focus monitor left"  { focus-monitor-left; }
+            Mod+Ctrl+Right hotkey-overlay-title="Focus monitor right" { focus-monitor-right; }
+            Mod+Ctrl+Shift+Left  hotkey-overlay-title="Push column to left monitor"  { move-column-to-monitor-left; }
+            Mod+Ctrl+Shift+Right hotkey-overlay-title="Push column to right monitor" { move-column-to-monitor-right; }
 
-            Mod+Comma  { consume-window-into-column; }
-            Mod+Period { expel-window-from-column; }
+            Mod+Comma  hotkey-overlay-title="Stack window into column"  { consume-window-into-column; }
+            Mod+Period hotkey-overlay-title="Unstack window from column" { expel-window-from-column; }
 
-            Mod+F { maximize-column; }
-            Mod+Shift+F { fullscreen-window; }
-            Mod+Space { toggle-window-floating; }
-            Mod+R { switch-preset-column-width; }
-            Mod+Shift+R { reset-window-height; }
+            Mod+F hotkey-overlay-title="Maximize column" { maximize-column; }
+            Mod+Shift+F hotkey-overlay-title="Fullscreen window" { fullscreen-window; }
+            Mod+Space hotkey-overlay-title="Toggle floating" { toggle-window-floating; }
+            Mod+R hotkey-overlay-title="Cycle column width" { switch-preset-column-width; }
+            Mod+Shift+R hotkey-overlay-title="Reset window height" { reset-window-height; }
 
             Mod+1 { focus-workspace 1; }
             Mod+2 { focus-workspace 2; }

@@ -33,11 +33,26 @@ in
           # tell NixOS/Home Manager which stateful defaults to preserve
           # across upgrades; they are not a "target version".
           system.stateVersion = "26.05";
-          home-manager.users.${config.my.user}.home.stateVersion = "26.05";
           # Two columns (the shared 0.5 default from core-options) is
           # deliberate here: with Mod+Comma to stack a window into the
           # current column (2 per column), that's a 2x2 grid feel of up
           # to 4 windows, not 3 skinny columns.
+
+          # niri auto-sorts outputs by connector name (DP-1 before
+          # HDMI-A-1), which put the U2414H on the right even though it
+          # sits on the left. Pin both positions to the physical layout;
+          # positions are in logical pixels (scale 1, so 1920x1080).
+          home-manager.users.${config.my.user} = {
+            home.stateVersion = "26.05";
+            myConfig.niri.extraOutput = ''
+              output "HDMI-A-1" {
+                  position x=0 y=0
+              }
+              output "DP-1" {
+                  position x=1920 y=0
+              }
+            '';
+          };
 
           programs.steam.remotePlay.openFirewall = true;
         }

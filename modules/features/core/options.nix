@@ -29,6 +29,11 @@
           default = "";
           description = "Extra `spawn-at-startup` lines.";
         };
+        extraOutput = lib.mkOption {
+          type = lib.types.lines;
+          default = "";
+          description = "Extra top-level KDL for niri, e.g. `output \"NAME\" { ... }` blocks pinning monitor positions.";
+        };
         # 0.5 means two columns fill the screen -- fine on a laptop, but
         # cramped on a wider desktop monitor where more should fit at
         # once. Per-host since it depends on actual screen width, not

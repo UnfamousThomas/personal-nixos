@@ -24,6 +24,11 @@
         bindkey '^[[1;5C' forward-word
         bindkey '^[[1;5D' backward-word
       '';
+      # Fastfetch draws its banner only for interactive shells (initExtra
+      # never runs for non-interactive ones), i.e. each new terminal/tab.
+      initExtra = ''
+        fastfetch
+      '';
       shellAliases = {
         la = "eza -la --icons --git";
         lt = "eza --tree --icons";
