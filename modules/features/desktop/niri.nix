@@ -162,16 +162,19 @@
             Mod+Shift+5 { move-column-to-workspace 5; }
             Mod+Page_Down { focus-workspace-down; }
             Mod+Page_Up   { focus-workspace-up; }
-            // Overview: a "task view" of every window across all workspaces
-            // (closest niri has to Windows' Win+Tab). Scroll through it with
-            // the wheel or arrow keys while it's open.
-            Mod+Tab hotkey-overlay-title="Overview of all windows" { toggle-overview; }
-            // "Scroll" between windows by holding Mod and wheeling: moves
-            // through the current column, rolling into the next workspace
-            // only when the column's end is reached. Direction follows
-            // niri's natural-scroll setting.
-            Mod+WheelScrollDown { focus-window-or-workspace-down; }
-            Mod+WheelScrollUp   { focus-window-or-workspace-up; }
+            // Mod+Tab is the Windows-style app switcher. Noctalia's window
+            // switcher shows a centered grid of the windows on the current
+            // screen (Tab/arrows/Enter to pick). niri's own overview
+            // (toggle-overview, also on the top-left hot corner) zooms out over
+            // every workspace, which reads as a desktop grid when workspaces
+            // only hold one window each -- so this is the better daily switch.
+            Mod+Tab hotkey-overlay-title="Switch window" { spawn-sh "noctalia msg window-switcher"; }
+            // "Scroll" between windows by holding Mod and wheeling. Cycles within
+            // the current workspace only (down-or-top wraps around); it never
+            // switches workspaces, so a single-window workspace simply holds
+            // still. Direction follows niri's natural-scroll setting.
+            Mod+WheelScrollDown { focus-window-down-or-top; }
+            Mod+WheelScrollUp   { focus-window-up-or-bottom; }
 
             Mod+Shift+E { quit; }
             // Mod+F1 works on any layout; Slash is Shift+7 on Estonian.
@@ -185,8 +188,8 @@
             // drives PipeWire volume; playerctl drives any MPRIS player
             // (Spotify, Firefox, Discord ...). Volume steps as percentages so
             // they scale with the current sink's range.
-            XF86AudioRaiseVolume hotkey-overlay-title="Volume up" { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
-            XF86AudioLowerVolume hotkey-overlay-title="Volume down" { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+            XF86AudioRaiseVolume hotkey-overlay-title="Volume up" { spawn "wpctl" "set-volume" "--limit" "1.0" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+            XF86AudioLowerVolume hotkey-overlay-title="Volume down" { spawn "wpctl" "set-volume" "--limit" "1.0" "@DEFAULT_AUDIO_SINK@" "5%-"; }
             XF86AudioMute        hotkey-overlay-title="Mute" { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
             XF86AudioMicMute     hotkey-overlay-title="Mute microphone" { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
             XF86AudioPlay hotkey-overlay-title="Play/Pause" { spawn "playerctl" "play-pause"; }
