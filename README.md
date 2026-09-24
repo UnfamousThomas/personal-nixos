@@ -148,7 +148,7 @@ entirely.
      `hosts/thomas-desktop/default.nix`, commit and push it, *then* run the
      installer: it only asks for `main`. See "Adding the bulk disk later".
 4. It asks for the user's login password and the shared age key (paste it
-   from 1Password; see "Secrets"), generates a hardware report (`nixos-facter`), then partitions, formats and
+   from `~/.config/personal-nixos/age.key`; see "Secrets"), generates a hardware report (`nixos-facter`), then partitions, formats and
    installs. You'll be prompted for a LUKS passphrase per encrypted volume;
    pick one you'll remember, TPM2 auto-unlock gets enrolled afterwards (see
    "First boot" below).
