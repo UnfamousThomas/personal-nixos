@@ -107,6 +107,31 @@ best_disk() {
   echo "$best"
 }
 
+# Guards against picking the wrong device by mistake. The disk the installer
+# booted from is refused outright (wiping it would destroy the installer);
+# a USB-attached or removable disk gets a warning and needs an explicit yes,
+# since it's usually a stick or an external drive, not an internal disk.
+# Returns 1 to send the caller back to the prompt.
+check_disk_risk() {
+  local disk="$1" tran rm desc ans
+  if [ -n "$BOOT_DISK" ] && [ "$disk" = "$BOOT_DISK" ]; then
+    echo "!! '$disk' is the disk this installer booted from; wiping it would destroy the installer. Pick another."
+    return 1
+  fi
+  tran="$(lsblk -dno TRAN "$disk" 2>/dev/null | head -n1)"
+  rm="$(lsblk -dno RM "$disk" 2>/dev/null | head -n1 | tr -d ' ')"
+  if [ "$tran" = "usb" ] || [ "$rm" = "1" ]; then
+    desc="$(lsblk -dno SIZE,MODEL "$disk" 2>/dev/null | head -n1)"
+    echo "!! '$disk' ($desc) is a USB-attached or removable disk, not an internal one."
+    read -rp "   Wipe it and install onto it anyway? [y/N] " ans
+    case "$ans" in
+      [Yy]*) return 0 ;;
+      *) return 1 ;;
+    esac
+  fi
+  return 0
+}
+
 # With more than one role there is no default: the right disk for each
 # role can't be guessed from sizes.
 DEFAULT_DISK=""
@@ -133,6 +158,7 @@ for role in "${DISK_ROLES[@]}"; do
         continue 2
       fi
     done
+    check_disk_risk "$DISK" || continue
     break
   done
   DISKS[$role]="$DISK"
