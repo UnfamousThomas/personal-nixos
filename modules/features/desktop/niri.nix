@@ -66,11 +66,12 @@
             Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
             Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
-            // Mod+Space was already toggle-window-floating (below); niri
-            // also doesn't accept a bare Mod-alone bind ("invalid key:
-            // Mod" from `niri validate`) so a Super-tap-to-launch isn't
-            // possible here. Mod+Slash instead.
-            Mod+Slash hotkey-overlay-title="Open Launcher" { spawn-sh "noctalia msg panel-toggle launcher"; }
+            // niri doesn't accept a bare Mod-alone bind ("invalid key: Mod"
+            // from `niri validate`), so tapping Super sends F13 instead
+            // (keyd.nix) and F13 opens the launcher. Mod+A is the same
+            // action from the keyboard proper, in case keyd isn't running.
+            F13 hotkey-overlay-title="Open Launcher (Super tap)" { spawn-sh "noctalia msg panel-toggle launcher"; }
+            Mod+A { spawn-sh "noctalia msg panel-toggle launcher"; }
 
             Mod+Q { close-window; }
             Mod+Left  { focus-column-left; }
@@ -105,6 +106,9 @@
             Mod+Page_Up   { focus-workspace-up; }
 
             Mod+Shift+E { quit; }
+            // Mod+Shift+Slash is Shift+7 on the Estonian layout, so it's
+            // unreliable there; Mod+F1 works on any layout.
+            Mod+F1 { show-hotkey-overlay; }
             Mod+Shift+Slash { show-hotkey-overlay; }
             Print { screenshot; }
             Mod+Print { screenshot-screen; }
