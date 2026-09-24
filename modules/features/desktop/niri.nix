@@ -67,10 +67,13 @@
             Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
             // niri doesn't accept a bare Mod-alone bind ("invalid key: Mod"
-            // from `niri validate`), so tapping Super sends F13 instead
-            // (keyd.nix) and F13 opens the launcher. Mod+A is the same
-            // action from the keyboard proper, in case keyd isn't running.
-            F13 hotkey-overlay-title="Open Launcher (Super tap)" { spawn-sh "noctalia msg panel-toggle launcher"; }
+            // from `niri validate`), so tapping Super sends the F13 keycode
+            // instead (keyd.nix) and that opens the launcher. niri binds by
+            // keysym, and xkeyboard-config maps the F13 keycode to
+            // XF86Tools, not F13 -- a bind named F13 never matches.
+            // Mod+A is the same action from the keyboard proper, in case
+            // keyd isn't running.
+            XF86Tools hotkey-overlay-title="Open Launcher (Super tap)" { spawn-sh "noctalia msg panel-toggle launcher"; }
             Mod+A { spawn-sh "noctalia msg panel-toggle launcher"; }
 
             Mod+Q { close-window; }
