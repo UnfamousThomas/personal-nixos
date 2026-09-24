@@ -16,6 +16,88 @@
           installation_mode = "force_installed";
         };
       };
+      policies.Bookmarks = [
+        {
+          toplevel_name = "Bookmarks Toolbar";
+          Toolbar = true;
+          children = [
+            {
+              name = "Code";
+              type = "folder";
+              children = [
+                {
+                  name = "GitHub";
+                  url = "https://github.com/MirrorStudios";
+                }
+                {
+                  name = "Linear";
+                  url = "https://linear.app";
+                }
+                {
+                  name = "opencode";
+                  url = "https://opencode.ai";
+                }
+              ];
+            }
+            {
+              name = "Reading";
+              type = "folder";
+              children = [
+                {
+                  name = "Webnovel";
+                  url = "https://www.webnovel.com";
+                }
+                {
+                  name = "Patreon";
+                  url = "https://www.patreon.com";
+                }
+                {
+                  name = "ScribbleHub";
+                  url = "https://www.scribblehub.com";
+                }
+                {
+                  name = "DemonicScans";
+                  url = "https://demonicscans.org";
+                }
+              ];
+            }
+            {
+              name = "Learning";
+              type = "folder";
+              children = [
+                {
+                  name = "YouTube";
+                  url = "https://www.youtube.com";
+                }
+                {
+                  name = "Master.dev";
+                  url = "https://master.dev";
+                }
+              ];
+            }
+            {
+              name = "Gmail";
+              url = "https://mail.google.com";
+            }
+            {
+              name = "ERR";
+              url = "https://www.err.ee";
+            }
+          ];
+        }
+      ];
+      policies.Preferences = {
+        # No "local weather" card on the new-tab page.
+        "browser.newtabpage.activity-stream.showWeather" = false;
+        "browser.newtabpage.activity-stream.system.showWeather" = false;
+        "browser.newtabpage.activity-stream.feeds.weatherfeed" = false;
+        "browser.urlbar.weather.featureGate" = false;
+        # Google's the search the user actually wants in the address bar.
+        "browser.search.defaultenginename" = "Google";
+        "browser.search.order.1" = "Google";
+        # Off: no Firefox Account/sync prompts or uploads.
+        "identity.fxaccounts.enabled" = false;
+      };
     };
   };
 
