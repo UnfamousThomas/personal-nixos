@@ -19,18 +19,21 @@
   flake.modules.homeManager.hidden-apps =
     { lib, ... }:
     {
-      xdg.desktopEntries = lib.genAttrs [
-        "qt5ct"
-        "qt6ct"
-        "nixos-manual"
-        "kvantummanager"
-        "btop"
-        "blueman-manager"
-        "dev.noctalia.Noctalia"
-      ] (name: {
-        name = name;
-        type = "Application";
-        noDisplay = true;
-      });
+      xdg.desktopEntries =
+        lib.genAttrs
+          [
+            "qt5ct"
+            "qt6ct"
+            "nixos-manual"
+            "kvantummanager"
+            "btop"
+            "blueman-manager"
+            "dev.noctalia.Noctalia"
+          ]
+          (name: {
+            inherit name;
+            type = "Application";
+            noDisplay = true;
+          });
     };
 }
