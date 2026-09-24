@@ -33,6 +33,11 @@ in
           # tell NixOS/Home Manager which stateful defaults to preserve
           # across upgrades; they are not a "target version".
           system.stateVersion = "26.05";
+          # Power button (short press) suspends the box. niri's own power-key
+          # handling is disabled in the niri config above so logind owns the
+          # key; this keeps one code path instead of niri's, which doesn't
+          # fire reliably here.
+          services.logind.settings.Login.HandlePowerKey = "suspend";
           # Two columns (the shared 0.5 default from core-options) is
           # deliberate here: with Mod+Comma to stack a window into the
           # current column (2 per column), that's a 2x2 grid feel of up
@@ -44,6 +49,12 @@ in
           # positions are in logical pixels (scale 1, so 1920x1080).
           home-manager.users.${config.my.user} = {
             home.stateVersion = "26.05";
+            # niri takes over the power key by default (its own suspend is
+            # flaky). Hand it back to logind, which we've pointed at suspend
+            # (HandlePowerKey below), for one well-tested path.
+            myConfig.niri.extraInput = ''
+              disable-power-key-handling
+            '';
             myConfig.niri.extraOutput = ''
               output "HDMI-A-1" {
                   position x=0 y=0
