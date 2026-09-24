@@ -29,7 +29,7 @@ in
   # succeed: that covers "no network yet" and, without the encrypted key,
   # "1Password not unlocked yet". `mirror-clone` runs the same thing by hand.
   flake.modules.homeManager.mirror-repos =
-    { pkgs, ... }:
+    { lib, pkgs, ... }:
     let
       repos = [
         "deployments"
@@ -78,6 +78,15 @@ in
     in
     {
       home.packages = [ mirror-clone ];
+
+      # The same key is ssh's identity for github.com, so `git push` (and any
+      # other git-over-SSH) works without 1Password. IdentitiesOnly: offer
+      # only this key rather than every key the agent holds, since GitHub
+      # drops the connection after a few rejected keys.
+      programs.ssh.settings."github.com" = lib.mkIf hasSecret {
+        IdentityFile = keyPath;
+        IdentitiesOnly = true;
+      };
 
       systemd.user.services.mirror-clone = {
         Unit.Description = "Clone missing Mirror Studios repos";
