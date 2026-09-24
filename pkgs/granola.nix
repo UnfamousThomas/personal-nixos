@@ -118,7 +118,9 @@ stdenv.mkDerivation {
 
     mkdir -p $out/share/granola
     cp -r app.asar app.asar.unpacked $out/share/granola/
-    install -Dm644 icons/icon.png $out/share/pixmaps/granola.png
+    # The launcher icon is assets/granola.png (Granola's own store icon),
+    # in the icon theme tree so the desktop entry's plain "granola" resolves.
+    install -Dm644 ${../assets/granola.png} $out/share/icons/hicolor/512x512/apps/granola.png
 
     makeWrapper ${lib.getExe electron} $out/bin/granola \
       --add-flags $out/share/granola/app.asar \
