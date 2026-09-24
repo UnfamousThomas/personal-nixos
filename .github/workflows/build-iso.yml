@@ -14,15 +14,23 @@ jobs:
         with:
           extra_nix_config: accept-flake-config = true
       - run: nix build --print-build-logs --no-link --out-link result .#iso
+      # Uniquely identify this build: branch, commit it was built from,
+      # date, and the repo-wide Actions run number.
+      - name: Compute release id
+        id: release_id
+        run: |
+          branch="${GITHUB_REF_NAME}"
+          shortsha="${GITHUB_SHA:0:7}"
+          date="$(date -u +%Y-%m-%d)"
+          echo "id=${branch}-${shortsha}-${date}-#${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: installer-latest
-          name: Installer ISO (latest)
+          tag_name: ${{ steps.release_id.outputs.id }}
+          name: ${{ steps.release_id.outputs.id }}
           body: >
             Boots straight into the installer once networking is up --
-            see the README's "Installing on a new machine". Rebuilt
-            on demand from whatever commit main was at when this
-            workflow last ran, not necessarily the current main.
+            see the README's "Installing on a new machine". Built from
+            commit ${{ github.sha }} on branch ${{ github.ref_name }}.
           files: result/iso/*.iso
           make_latest: true

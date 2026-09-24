@@ -105,7 +105,8 @@ about something (see "Testing before you commit to real hardware" below).
 
 Either boot the stock NixOS ISO and follow the steps below, or build this
 repo's own installer ISO (`nix build .#iso`, or download it from this
-repo's "Installer ISO (latest)" GitHub release -- built on demand via the
+repo's "Installer ISO" GitHub release (a `main-<shortsha>-<date>-#<run>`
+tag, e.g. `main-8bb2fd9-2026-09-24-#5` -- built on demand via the
 "build installer ISO" Actions workflow, not on every push) and boot that
 instead: it has `nix-command`/`flakes` already enabled and launches the
 installer automatically once networking is up, skipping steps 1-2 below
