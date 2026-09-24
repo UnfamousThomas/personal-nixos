@@ -5,6 +5,7 @@
       programs.niri.enable = true; # wires the session, portal (xdg-desktop-portal-gnome) and niri-session
       environment.systemPackages = [
         pkgs.nautilus # Mod+E
+        pkgs.playerctl # XF86AudioPlay/Next/Prev binds
         # niri integrates xwayland-satellite (>= 0.7) automatically when it's
         # in PATH: it exports $DISPLAY and spawns it on demand for X11-only
         # apps like Steam ("Unable to open a connection to X" otherwise).
@@ -53,16 +54,51 @@
         layout {
             gaps 12
             center-focused-column "never"
+            // Matches Catppuccin Mocha base. niri's default background is
+            // #404040 gray and shows behind (and before) Noctalia's wallpaper
+            // layer: on a slow/failed wallpaper load the whole desktop used
+            // to flash/flip gray.
+            background-color "#1e1e2e"
             default-column-width { proportion ${toString config.myConfig.niri.defaultColumnWidthProportion}; }
             focus-ring {
-                width 2
-                // Steel blue: the palette accent, softened for a window border.
+                // 1px, active-only steel blue: the gray ring was the
+                // focus-ring's inactive-color on the other monitor, so
+                // drop it to transparent and keep the accent subtle.
+                width 1
                 active-color "#7b9acb"
-                inactive-color "#45475a"
+                inactive-color "#45475a00"
             }
             border {
                 off
             }
+        }
+
+        // Steam's UI renders wider than its content needs, so at the shared
+        // 0.5 default width it squeezes a side-by-side app (Discord's server
+        // rail) off its monitor. Open it a bit narrower instead.
+        window-rule {
+            match app-id=r#"^steam$"#
+            default-column-width { proportion 0.4; }
+        }
+
+        // Steam's friend-in-game notifications are X11 toast popups (titles
+        // notificationtoasts_N_desktop) that niri maps as plain floating
+        // windows in the center of the screen. Pin them to the bottom-right
+        // and keep them from stealing focus from whatever's in front.
+        window-rule {
+            match app-id=r#"^steam$"# title=r#"^notificationtoasts_\d+_desktop$"#
+            default-floating-position x=10 y=10 relative-to="bottom-right"
+            open-focused false
+        }
+
+        // Discord collapses its friends/channel rail itself once the window
+        // is narrow enough, so pin the default width low enough (fixed
+        // pixels, not a proportion -- breakpoints key on width) to trigger
+        // that on a 1920px monitor. Mod+R (switch-preset-column-width) then
+        // widens it back out when the rail is wanted.
+        window-rule {
+            match app-id=r#"^(vesktop|discord)$"#
+            default-column-width { fixed 720; }
         }
 
         ${lib.optionalString (cursor != null) ''
@@ -133,6 +169,20 @@
             Mod+Shift+Slash { show-hotkey-overlay; }
             Print { screenshot; }
             Mod+Print { screenshot-screen; }
+
+            // niri has no built-in media-key handling, so without these binds
+            // the keyboard's volume/play buttons would do nothing. wpctl
+            // drives PipeWire volume; playerctl drives any MPRIS player
+            // (Spotify, Firefox, Discord ...). Volume steps as percentages so
+            // they scale with the current sink's range.
+            XF86AudioRaiseVolume hotkey-overlay-title="Volume up" { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+            XF86AudioLowerVolume hotkey-overlay-title="Volume down" { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+            XF86AudioMute        hotkey-overlay-title="Mute" { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+            XF86AudioMicMute     hotkey-overlay-title="Mute microphone" { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
+            XF86AudioPlay hotkey-overlay-title="Play/Pause" { spawn "playerctl" "play-pause"; }
+            XF86AudioNext hotkey-overlay-title="Next track" { spawn "playerctl" "next"; }
+            XF86AudioPrev hotkey-overlay-title="Previous track" { spawn "playerctl" "previous"; }
+            XF86AudioStop hotkey-overlay-title="Stop" { spawn "playerctl" "stop"; }
         }
       '';
     };

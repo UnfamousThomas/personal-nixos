@@ -52,6 +52,12 @@ in
                   position x=1920 y=0
               }
             '';
+            # Sidebar entry in Nautilus (Mod+E) pointing straight at the
+            # user-writable Bulk dir created by the hdd-bulk-dir service
+            # below. Nautilus reads the GNOME GTK3 bookmarks file.
+            xdg.configFile."gtk-3.0/bookmarks".text = ''
+              file:///mnt/hdd/Bulk Bulk Storage
+            '';
           };
 
           programs.steam.remotePlay.openFirewall = true;
@@ -70,6 +76,27 @@ in
             "nofail"
             "x-systemd.device-timeout=10s"
           ];
+
+          # The btrfs root of the HDD is owned by root, so write access has
+          # to come from a chown'd directory. Disko sets up the filesystem
+          # once, not per boot, so create it here -- after local-fs.target so
+          # it never races the (nofail) mount, and silently skipped when the
+          # HDD is absent. The Nautilus bookmark above points at this dir.
+          systemd.services.hdd-bulk-dir = {
+            description = "Create the user-writable Bulk directory on the HDD";
+            after = [ "local-fs.target" ];
+            wants = [ "local-fs.target" ];
+            wantedBy = [ "multi-user.target" ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+            };
+            script = ''
+              if mountpoint -q /mnt/hdd; then
+                install -d -o thomaspalts -g users -m 0755 /mnt/hdd/Bulk
+              fi
+            '';
+          };
         })
       ];
     };
