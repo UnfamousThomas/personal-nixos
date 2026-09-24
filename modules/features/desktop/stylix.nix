@@ -53,6 +53,15 @@
         applications = 10;
       };
 
+      # Without an icon theme only hicolor is installed, which lacks the
+      # symbolic icons GTK apps use (Nautilus's Starred folder, etc.).
+      stylix.icons = {
+        enable = true;
+        package = pkgs.adwaita-icon-theme;
+        dark = "Adwaita";
+        light = "Adwaita";
+      };
+
       stylix.cursor = {
         package = pkgs.bibata-cursors;
         name = "Bibata-Modern-Classic";
