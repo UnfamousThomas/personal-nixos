@@ -16,6 +16,18 @@
       cursor = config.stylix.cursor or null;
     in
     {
+      # A launcher entry for the hotkey overlay (also on Mod+F1), so the
+      # shortcuts can be found by searching for them.
+      xdg.desktopEntries.keyboard-shortcuts = {
+        name = "Keyboard Shortcuts";
+        genericName = "Hotkey Overlay";
+        comment = "Show the list of keyboard shortcuts";
+        exec = "niri msg action show-hotkey-overlay";
+        icon = "input-keyboard";
+        categories = [ "Utility" ];
+        terminal = false;
+      };
+
       xdg.configFile."niri/config.kdl".text = ''
         input {
             keyboard {
