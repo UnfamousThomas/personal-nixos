@@ -2,9 +2,9 @@
   flake.modules.homeManager.minecraft =
     { pkgs, ... }:
     {
-      # Shadows the package's own (bare-bones) entry, same filename. The
-      # package's icon sits outside the hicolor tree so a themed name never
-      # resolves; use the official avatar (assets/lunarclient.png) by path.
+      # Overrides the package's own launcher entry (same filename). The icon
+      # is given by path (assets/lunarclient.png): the package installs its
+      # own outside the icon theme tree, so a themed name doesn't resolve.
       xdg.desktopEntries.lunarclient = {
         name = "Lunar Client";
         genericName = "Minecraft Launcher";

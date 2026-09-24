@@ -38,8 +38,7 @@
             default-column-width { proportion ${toString config.myConfig.niri.defaultColumnWidthProportion}; }
             focus-ring {
                 width 2
-                // Softened steel blue rather than the raw palette blue:
-                // same accent family, much less shouty as a window border.
+                // Steel blue: the palette accent, softened for a window border.
                 active-color "#7b9acb"
                 inactive-color "#45475a"
             }
@@ -66,13 +65,9 @@
             Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
             Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
-            // niri doesn't accept a bare Mod-alone bind ("invalid key: Mod"
-            // from `niri validate`), so tapping Super sends the F13 keycode
-            // instead (keyd.nix) and that opens the launcher. niri binds by
-            // keysym, and xkeyboard-config maps the F13 keycode to
-            // XF86Tools, not F13 -- a bind named F13 never matches.
-            // Mod+A is the same action from the keyboard proper, in case
-            // keyd isn't running.
+            // Tapping Super sends the F13 keycode (keyd.nix). niri binds by
+            // keysym and xkeyboard-config maps that keycode to XF86Tools.
+            // Mod+A opens the launcher too, without keyd.
             XF86Tools hotkey-overlay-title="Open Launcher (Super tap)" { spawn-sh "noctalia msg panel-toggle launcher"; }
             Mod+A { spawn-sh "noctalia msg panel-toggle launcher"; }
 
@@ -109,8 +104,7 @@
             Mod+Page_Up   { focus-workspace-up; }
 
             Mod+Shift+E { quit; }
-            // Mod+Shift+Slash is Shift+7 on the Estonian layout, so it's
-            // unreliable there; Mod+F1 works on any layout.
+            // Mod+F1 works on any layout; Slash is Shift+7 on Estonian.
             Mod+F1 { show-hotkey-overlay; }
             Mod+Shift+Slash { show-hotkey-overlay; }
             Print { screenshot; }

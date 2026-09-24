@@ -8,15 +8,11 @@
       stylix.enable = true;
       stylix.polarity = "dark";
       # Catppuccin Mocha with a blue accent: base0E is the slot most base16
-      # templates treat as the primary accent, so it holds Blue (normally
-      # Mauve) and base0D holds Sapphire, which keeps the two distinguishable
-      # in syntax highlighting. Green stays in base0B where it belongs.
-      # Passed as an inline attrset (Stylix accepts
-      # path/YAML-string/attrset) rather than pointing at
-      # pkgs.base16-schemes' YAML file: Stylix's own YAML loader does its
-      # color-parsing via an IFD derivation that this environment couldn't
-      # realize during `nix flake check` -- an attrset sidesteps that
-      # indirection entirely and is equally correct.
+      # templates treat as the primary accent, so it holds Blue, and base0D
+      # holds Sapphire to stay distinguishable from it in syntax highlighting.
+      # Passed as an inline attrset (Stylix accepts path/YAML-string/attrset)
+      # because Stylix's YAML loader parses colors through an IFD derivation
+      # that can't be realized during `nix flake check`.
       stylix.base16Scheme = {
         base00 = "1e1e2e"; # Base
         base01 = "181825"; # Mantle
@@ -31,8 +27,8 @@
         base0A = "f9e2af"; # Yellow
         base0B = "a6e3a1"; # Green
         base0C = "94e2d5"; # Teal
-        base0D = "74c7ec"; # Sapphire (usually: Blue)
-        base0E = "89b4fa"; # Blue (usually: Mauve) -- the accent
+        base0D = "74c7ec"; # Sapphire
+        base0E = "89b4fa"; # Blue -- the accent
         base0F = "f2cdcd"; # Flamingo
       };
 

@@ -4,18 +4,16 @@
   # shadows the system-wide one (same filename, user data dir wins per
   # the XDG spec), without touching the package itself.
   #
-  # - qt5ct/qt6ct: manual Qt theming, redundant since Stylix themes Qt
-  #   automatically already.
+  # - qt5ct/qt6ct: manual Qt theming, redundant with Stylix.
   # - nixos-manual: the browsable NixOS manual, not something reached for
   #   day to day.
   # - kvantummanager: manual Kvantum theming, same story as qt5ct/qt6ct.
   # - btop: the desktop entry duplicates the `top`/`btop` terminal alias;
   #   it's a TUI, not something to launch from an app grid.
-  # - blueman-manager: Bluetooth Manager -- redundant now that Noctalia's
-  #   own control center has Bluetooth built in.
-  # - dev.noctalia.Noctalia: the shell's own entry for itself. It's
-  #   already running as the desktop shell; "launching" it from its own
-  #   search isn't a useful action.
+  # - blueman-manager: Bluetooth Manager, redundant with the Bluetooth
+  #   controls in Noctalia's control center.
+  # - dev.noctalia.Noctalia: the shell's own entry; it's the running
+  #   desktop shell, so launching it from search does nothing useful.
   flake.modules.homeManager.hidden-apps =
     { lib, ... }:
     {

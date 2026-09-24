@@ -11,9 +11,8 @@
         mouse-hide-while-typing = true;
 
         keybind = [
-          # Ctrl+C copies when there's a selection; with nothing selected
-          # ("performable" falls through) it's still the normal interrupt, so
-          # a running command can be stopped the usual way.
+          # Ctrl+C copies when there's a selection and is the normal
+          # interrupt otherwise ("performable" falls through).
           "performable:ctrl+c=copy_to_clipboard"
           # Always interrupts, selection or not (\x03 is the ^C byte).
           "ctrl+shift+c=text:\\x03"

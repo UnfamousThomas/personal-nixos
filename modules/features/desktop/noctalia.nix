@@ -35,9 +35,8 @@
             tooltip_format = "{:%A, %d %B %Y}";
           };
 
-          # The picker browses one directory and defaults to ~/Pictures,
-          # which is empty on a fresh install. Point it at the generated
-          # gradients instead (pkgs/gradient-wallpaper.nix).
+          # The picker browses one directory (~/Pictures by default, empty on
+          # a fresh install): the generated gradients, pkgs/gradient-wallpaper.nix.
           wallpaper.directory = "${pkgs.gradient-wallpaper}/share/wallpapers";
         };
       };

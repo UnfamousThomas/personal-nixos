@@ -3,16 +3,14 @@
     { lib, ... }:
     {
       networking.networkmanager.enable = true;
-      # Some routers only advertise themselves as a DNS server over IPv6
-      # link-local (fe80::...) and don't answer there, so every lookup times
-      # out while ping-by-IP works. So NetworkManager doesn't hand
-      # DHCP/RA-provided DNS to the resolver at all (dns = "none"; a
-      # `resolvectl dns` override doesn't stick, NetworkManager re-applies its
-      # own), and resolved uses these servers on every network instead.
-      # Tailscale still registers its MagicDNS domains with resolved directly.
-      # The cost: DNS handed out by a network is ignored, so names that only
-      # that network's own DNS knows (a work/campus intranet) won't resolve.
-      # (mkForce: the resolved module sets this to "systemd-resolved" itself.)
+      # Some routers advertise only an IPv6 link-local DNS server
+      # (fe80::...) that doesn't answer, so lookups time out while
+      # ping-by-IP works. NetworkManager therefore passes no DHCP/RA DNS to
+      # the resolver (dns = "none"), and resolved uses the fixed public
+      # servers below on every network. Tailscale registers its MagicDNS
+      # domains with resolved directly. Trade-off: names only a network's own
+      # DNS knows (a work/campus intranet) don't resolve.
+      # mkForce: the resolved module sets this to "systemd-resolved".
       networking.networkmanager.dns = lib.mkForce "none";
       # MagicDNS (Tailscale) needs systemd-resolved as the resolver.
       services.resolved = {
