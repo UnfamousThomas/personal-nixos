@@ -17,19 +17,19 @@ NIX_FLAGS=(--extra-experimental-features "nix-command flakes" --accept-flake-con
 
 # The flake app (modules/flake/install-app.nix) provides the pinned tools
 # and the source tree to install. Run from a checkout, hand off to it.
-if [ -z "${DISKO_INSTALL:-}" ]; then
+if [ -z "${DISKO_SRC:-}" ]; then
   exec nix "${NIX_FLAGS[@]}" run "path:$(cd "$(dirname "$0")/.." && pwd)#install"
 fi
 
 # The live ISO's / (and /tmp) is a RAM-backed tmpfs, capped by default at
-# ~50% of physical RAM. More importantly, /nix/store itself is an overlay
-# of a read-only squashfs (/nix/.ro-store, part of the ISO -- always shows
-# 100% used, that's normal) unioned with a *separate* writable tmpfs
-# (/nix/.rw-store) that everything Nix fetches/builds during the install
-# actually lands in. Evaluating and building this flake can need more room
-# than any of these defaults leave -- well before physical RAM is actually
-# exhausted -- and surfaces as a bare "No space left on device". Raise the
-# caps so Nix can use the RAM that's actually there.
+# ~50% of physical RAM. /nix/store itself is an overlay of a read-only
+# squashfs (/nix/.ro-store, part of the ISO -- always shows 100% used,
+# that's normal) unioned with a *separate* writable tmpfs (/nix/.rw-store)
+# that whatever Nix fetches on the ISO lands in. The system is built into
+# the target disk's store (see nixos-install below), but evaluating the
+# flake and fetching the tools still lands here, and can run into these
+# defaults well before physical RAM is exhausted, as a bare "No space left
+# on device". Raise the caps.
 echo "==> Raising tmpfs size caps (default ~50% of RAM, easily hit mid-eval)"
 for mnt in / /tmp /nix/.rw-store; do
   fstype="$(findmnt -no FSTYPE "$mnt" 2>/dev/null || true)"
@@ -271,23 +271,59 @@ if [ -n "${REPO_REV:-}" ]; then
 fi
 sudo chown -R "$HOST_UID:users" "$REPO_DIR"
 
-echo "==> Partitioning, formatting and installing with disko-install"
+# Nix options for the root-run nix-build/nixos-install below (sudo strips the
+# calling environment, so they're passed explicitly, like NIX_FLAGS above).
+NIX_ROOT_OPTS=(
+  --option extra-experimental-features "nix-command flakes"
+  --option accept-flake-config true
+  --option extra-substituters "$EXTRA_SUBSTITUTERS"
+  --option extra-trusted-public-keys "$EXTRA_TRUSTED_PUBLIC_KEYS"
+)
+MOUNT=/mnt
+
+# disko builds only its (small) partitioning script here. The system itself
+# is NOT built in the live ISO: its store is RAM-backed, and a full
+# workstation closure plus compiles doesn't fit, so the machine freezes.
+# nixos-install below builds straight into the new disk's store instead.
+echo "==> Preparing the partitioning script"
+DISK_MAP="{ "
+for role in "${DISK_ROLES[@]}"; do
+  DISK_MAP+="\"$role\" = \"${DISKS[$role]}\"; "
+done
+DISK_MAP+="}"
+# shellcheck disable=SC2153 # set by the flake app, like REPO_SRC
+DISKO_SCRIPT="$(
+  sudo nix-build "$DISKO_SRC/install-cli.nix" "${NIX_ROOT_OPTS[@]}" \
+    --no-out-link --impure \
+    --argstr flake "path:${REPO_DIR}" \
+    --argstr flakeAttr "$HOST" \
+    --argstr rootMountPoint "$MOUNT" \
+    --arg diskMappings "$DISK_MAP" \
+    -A diskoScript
+)"
+
+echo "==> Partitioning and formatting"
 echo "    (you will be prompted for a LUKS passphrase for each encrypted"
 echo "    volume -- pick one you'll remember, you can enroll TPM2"
 echo "    auto-unlock afterwards, see README 'First boot')"
-DISKO_ARGS=(
-  --flake "path:${REPO_DIR}#${HOST}"
-  --option extra-experimental-features "nix-command flakes"
-  --option extra-substituters "$EXTRA_SUBSTITUTERS"
-  --option extra-trusted-public-keys "$EXTRA_TRUSTED_PUBLIC_KEYS"
-  --extra-files "$STAGE/password" "$PASSWORD_FILE"
-  --extra-files "$STAGE/host.key" "$AGE_KEY_FILE"
-  --extra-files "$REPO_DIR" "$HOST_HOME/personal-nixos"
-)
-for role in "${DISK_ROLES[@]}"; do
-  DISKO_ARGS+=(--disk "$role" "${DISKS[$role]}")
-done
-sudo "$DISKO_INSTALL" "${DISKO_ARGS[@]}"
+# No swap on the live system: it can hang the machine when the disk is
+# later removed or reformatted.
+sudo env DISKO_SKIP_SWAP=1 "$DISKO_SCRIPT"
+
+echo "==> Placing the password, age key and repo copy on the new system"
+sudo mkdir -p "$MOUNT$(dirname "$PASSWORD_FILE")" "$MOUNT$(dirname "$AGE_KEY_FILE")" "$MOUNT$HOST_HOME"
+sudo cp -a "$STAGE/password" "$MOUNT$PASSWORD_FILE"
+sudo cp -a "$STAGE/host.key" "$MOUNT$AGE_KEY_FILE"
+sudo cp -a "$REPO_DIR" "$MOUNT$HOST_HOME/personal-nixos"
+
+echo "==> Building and installing (into the new disk's store, not RAM)"
+echo "    This downloads and, where there's no cached build, compiles"
+echo "    everything; it can take a long time."
+sudo nixos-install --root "$MOUNT" --no-channel-copy --no-root-password \
+  --flake "path:${REPO_DIR}#${HOST}" --no-write-lock-file "${NIX_ROOT_OPTS[@]}"
+
+sync
+sudo umount -R "$MOUNT" || true
 
 cat <<EOF
 

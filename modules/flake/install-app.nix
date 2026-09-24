@@ -1,10 +1,15 @@
-{ self, lib, ... }:
+{
+  self,
+  lib,
+  inputs,
+  ...
+}:
 {
   # `nix run github:UnfamousThomas/personal-nixos#install`
   #
   # Everything the installer runs as root comes from this flake's lock file
-  # (disko-install, nixos-facter), and it installs exactly the source tree
-  # the app was built from.
+  # (disko's partitioning script, nixos-facter), and it installs exactly the
+  # source tree the app was built from.
   perSystem =
     { pkgs, inputs', ... }:
     let
@@ -25,7 +30,7 @@
             }:$PATH
             export REPO_SRC=${self}
             export REPO_REV=${self.rev or ""}
-            export DISKO_INSTALL=${inputs'.disko.packages.disko-install}/bin/disko-install
+            export DISKO_SRC=${inputs.disko}
             export NIXOS_FACTER=${inputs'.nixos-facter.packages.nixos-facter}/bin/nixos-facter
             export EXTRA_SUBSTITUTERS=${lib.escapeShellArg (toString extra-substituters)}
             export EXTRA_TRUSTED_PUBLIC_KEYS=${lib.escapeShellArg (toString extra-trusted-public-keys)}

@@ -127,14 +127,14 @@ entirely.
    app from the checkout). Add `--refresh` if you're re-running right after
    pushing a fix, so it doesn't reuse a cached fetch of an older commit.
    The installer uses the disko and nixos-facter versions from
-   `flake.lock`, and installs exactly the commit you ran. It raises the live
-   ISO's tmpfs size cap (default ~50% of RAM) first, since building the
-   system can otherwise fail with a bare "No space left on device" well
-   before RAM is actually full. That fix only goes so far, though: on a
-   genuinely low-RAM machine (`thomas-laptop`'s 8GB, for one) the build
-   still runs entirely in the live ISO's memory, and no realistic amount of
-   swap fixes that cleanly -- see "Installing on a low-RAM machine" below
-   for what actually works.
+   `flake.lock`, and installs exactly the commit you ran. It partitions and
+   formats with disko, then runs `nixos-install --flake`, which builds the
+   system straight into the new disk's Nix store, so the big closure and
+   the compiles don't have to fit in the live ISO's RAM. (Evaluating the
+   flake and fetching the tools still use some RAM; the installer raises
+   the live ISO's tmpfs cap first, since those can otherwise fail with a
+   bare "No space left on device".) See "Installing on a low-RAM machine"
+   below for machines where even that is too tight.
 3. Pick the host. The script reads that host's disko config from the flake
    to find which disk role(s) it needs (e.g. just `main`, or `main` +
    `bulk`) and asks for a device per role. For a single-disk host it
@@ -160,29 +160,26 @@ entirely.
 
 ### Installing on a low-RAM machine
 
-The installer above builds the entire system closure in the live ISO's
-own RAM before it ever touches the target disk. Raising the tmpfs cap
-(step 2) helps when the machine is hitting an artificial ~50%-of-RAM
-quota with headroom to spare, but it can't manufacture RAM that isn't
-there. `thomas-laptop` has 8GB, and its closure (Steam, the full Qt5 +
-Qt6 stack, Docker, a browser, ...) is comfortably bigger than that once
-unpacked. Swap doesn't reliably save you here either: the obvious place
-to put it is the target disk, but disko wipes that the moment it formats,
-and the live boot USB usually can't be repartitioned safely while it's
-mounted and in use.
+The installer above builds the system into the target disk's store, not
+the live ISO's RAM, so a big closure no longer needs the RAM to hold it.
+It still needs RAM for evaluating the flake and for build scratch space,
+and the live ISO has no swap, so a very small machine (`thomas-laptop`'s
+8GB, with the closure compiling Noctalia and others) can still run out and
+freeze rather than fail cleanly. Swap doesn't fix that cleanly: the obvious
+place to put it is the target disk, but disko wipes that the moment it
+formats, and the live boot USB usually can't be repartitioned safely while
+it's mounted and in use.
 
-The real fix is to not build on the target machine at all. Drive the
-install from a second, more capable machine with
+For such a machine, don't build on the target at all. Drive the install
+from a second, more capable machine with
 [nixos-anywhere](https://github.com/nix-community/nixos-anywhere): it
 builds locally there and only copies the finished closure to the target
 over SSH.
 
-`thomas-laptop/disko.nix` has its device hardcoded (`/dev/nvme0n1`, its
-only disk) specifically so this needs no local edits -- unlike
-`disko-install --disk`, nixos-anywhere has no per-role disk-override
-flag. `thomas-desktop` still has the `CHANGE_ME_SSD`/`CHANGE_ME_HDD`
-placeholders in its `disko.nix`; hardcode the real device path(s) there
-first if you ever need to do this on the desktop.
+Unlike disko's `--disk`, nixos-anywhere has no per-role disk-override
+flag, so `remote-install.sh` writes the chosen device into a throwaway
+clone of the repo's disko files before running it. (`thomas-laptop/disko.nix`
+also has its device hardcoded, `/dev/nvme0n1`, its only disk.)
 
 `install/remote-install.sh` is `install.sh`'s companion for exactly this:
 run it from the other machine (needs Nix -- on Windows that means WSL2),
