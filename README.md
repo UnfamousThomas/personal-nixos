@@ -311,18 +311,20 @@ in plaintext, only `.age` files and public keys.
 
 **One shared age key for all machines.** Its public half is
 `secrets/age-recipient.txt` (the only recipient in `secrets.nix`); its private
-half lives in 1Password and at `/var/lib/agenix/host.key` on every machine,
-which is where NixOS-level secrets are decrypted from. Because every machine
+half lives at `/var/lib/agenix/host.key` on every machine (where NixOS-level
+secrets are decrypted from) and in `~/.config/personal-nixos/age.key` on the
+machine you install from. A separate backup is optional: if every copy is
+lost, delete `secrets/mirror-ssh.age` and re-run `install/secrets-init.sh`. Because every machine
 holds the same key, a new machine decrypts everything on first boot, with
 nothing to re-encrypt. The cost: if the key leaks, every secret is exposed
 and it must be rotated everywhere.
 
 - **First time**: `install/secrets-init.sh` creates the key (at
-  `~/.config/personal-nixos/age.key`), tells you to save it in 1Password, and
-  sets up the secrets.
-- **Installing a machine**: the installer asks you to paste the key (or
-  finds it: `remote-install.sh` reads `~/.config/personal-nixos/age.key`,
-  the private ISO below has it baked in). Pressing Enter instead generates
+  `~/.config/personal-nixos/age.key`) and sets up the secrets.
+- **Installing a machine**: the installer asks you to paste the key (the
+  `AGE-SECRET-KEY-...` line from that file), or finds it itself:
+  `remote-install.sh` reads `~/.config/personal-nixos/age.key`, and the
+  private ISO below has it baked in. Pressing Enter instead generates
   a separate key for that host, which then can't decrypt anything until you
   add its public key to `secrets.nix` and run `agenix -r`.
 - **Machine already installed** with its own key: switch it to the shared

@@ -26,13 +26,12 @@ if [ ! -e "$KEY" ]; then
 
 Created the shared age key at $KEY
 
-Save it in 1Password NOW (a secure note): it is the only copy, and every
-install needs it. It is:
-
-$(cat "$KEY")
+Every install needs this file (the installer reads it from here, or you
+paste its AGE-SECRET-KEY line). A backup somewhere you trust is optional: if
+every copy is ever lost, delete secrets/mirror-ssh.age and re-run this
+script, which makes a new key and a new SSH key for GitHub.
 
 EOF
-  read -rp "Press Enter once it's saved. " _
 fi
 
 mkdir -p secrets

@@ -5,7 +5,7 @@
 #
 # Run from a checkout of this repo, on a machine with Nix (WSL is fine).
 # The key comes from $PERSONAL_NIXOS_AGE_KEY or ~/.config/personal-nixos/age.key
-# (created by install/secrets-init.sh, or paste it there from 1Password).
+# (created by install/secrets-init.sh, or copy your key file there).
 #
 # Usage: install/build-iso.sh [output.iso]
 set -euo pipefail
