@@ -10,7 +10,18 @@
       enable = true;
       keyboards.default = {
         ids = [ "*" ];
-        settings.main.leftmeta = "overload(meta, f13)";
+        settings = {
+          # keyd re-emits every Caps Lock press as an immediate
+          # press+release macro, so xkb's "unlock takes effect on key
+          # release" behavior never delays the toggle (the classic
+          # "CAps LOck" Wayland lag). macro_timeout stops a held Caps
+          # Lock from re-firing the macro, so only real taps toggle.
+          global.macro_timeout = "600000";
+          main = {
+            leftmeta = "overload(meta, f13)";
+            capslock = "macro(capslock)";
+          };
+        };
       };
     };
   };
