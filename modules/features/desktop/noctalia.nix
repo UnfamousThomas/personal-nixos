@@ -1,12 +1,15 @@
 { inputs, ... }:
 {
-  flake.modules.nixos.desktop-noctalia = {
-    imports = [ inputs.noctalia.nixosModules.default ];
-    programs.noctalia = {
-      enable = true;
-      recommendedServices.enable = true; # NetworkManager, Bluetooth, UPower, power-profiles-daemon
+  flake.modules.nixos.desktop-noctalia =
+    { pkgs, ... }:
+    {
+      imports = [ inputs.noctalia.nixosModules.default ];
+      programs.noctalia = {
+        enable = true;
+        package = pkgs.noctalia; # the patched build, modules/flake/overlays.nix
+        recommendedServices.enable = true; # NetworkManager, Bluetooth, UPower, power-profiles-daemon
+      };
     };
-  };
 
   # Theme and wallpaper come from Stylix's Noctalia target (desktop/stylix.nix).
   flake.modules.homeManager.noctalia =
@@ -15,6 +18,7 @@
       imports = [ inputs.noctalia.homeModules.default ];
       programs.noctalia = {
         enable = true;
+        package = pkgs.noctalia; # the patched build, modules/flake/overlays.nix
         # User service bound to graphical-session.target (started by
         # niri-session).
         systemd.enable = true;
@@ -34,6 +38,10 @@
             color = "primary";
             tooltip_format = "{:%A, %d %B %Y}";
           };
+
+          # The wallpaper panel's Dark/Light/Auto switcher is hidden
+          # (overlays.nix), so the mode is fixed here.
+          theme.mode = "dark";
 
           # The picker browses one directory (~/Pictures by default, empty on
           # a fresh install): the generated gradients, pkgs/gradient-wallpaper.nix.
