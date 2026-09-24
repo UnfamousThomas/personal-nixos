@@ -19,5 +19,14 @@
         args = [ "acp" ];
         env = { };
       };
+
+      # opencode's own config (~/.config/opencode/opencode.json).
+      xdg.configFile."opencode/opencode.json".text = builtins.toJSON {
+        "$schema" = "https://opencode.ai/config.json";
+        mcp.linear = {
+          type = "remote";
+          url = "https://mcp.linear.app/mcp";
+        };
+      };
     };
 }
