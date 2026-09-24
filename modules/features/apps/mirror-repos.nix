@@ -1,12 +1,33 @@
+let
+  # Encrypted SSH key for cloning (README "Mirror repos"). Optional: until
+  # secrets/mirror-ssh.age exists the clone falls back to the SSH agent.
+  secretFile = ../../../secrets/mirror-ssh.age;
+  hasSecret = builtins.pathExists secretFile;
+  # Where agenix puts it at activation (age.secrets.<name> -> /run/agenix/<name>).
+  keyPath = "/run/agenix/mirror-ssh";
+in
 {
+  # Decrypted with the host's age key, so it's there on a fresh install
+  # before 1Password or any user key has been set up.
+  flake.modules.nixos.mirror-repos =
+    { config, lib, ... }:
+    {
+      age.secrets = lib.mkIf hasSecret {
+        mirror-ssh = {
+          file = secretFile;
+          owner = config.my.user;
+          mode = "0400";
+        };
+      };
+    };
+
   # Clones the Mirror Studios repos into ~/projects/Mirror. Only missing ones
   # are cloned, so existing checkouts (and any local work) are never touched.
   #
   # Nix can't do this at build time (it needs network and your SSH key), so it
   # is a user service that runs at login and keeps retrying until the clones
-  # succeed: that covers "no network yet" and "1Password not unlocked yet"
-  # (the SSH agent only serves keys once it's unlocked). `mirror-clone` runs
-  # the same thing by hand.
+  # succeed: that covers "no network yet" and, without the encrypted key,
+  # "1Password not unlocked yet". `mirror-clone` runs the same thing by hand.
   flake.modules.homeManager.mirror-repos =
     { pkgs, ... }:
     let
@@ -30,8 +51,16 @@
         text = ''
           dir="$HOME/projects/Mirror"
           mkdir -p "$dir"
+
           # First connection to github.com must not stop to ask about the host key.
-          export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"
+          ssh_cmd="ssh -o StrictHostKeyChecking=accept-new"
+          # Prefer the agenix-decrypted key (present when
+          # secrets/mirror-ssh.age is in the repo); otherwise use whatever the
+          # SSH agent offers.
+          if [ -r ${keyPath} ]; then
+            ssh_cmd="$ssh_cmd -i ${keyPath} -o IdentitiesOnly=yes"
+          fi
+          export GIT_SSH_COMMAND="$ssh_cmd"
 
           failed=0
           for repo in ${toString repos}; do
@@ -55,7 +84,7 @@
         Service = {
           Type = "oneshot";
           ExecStart = "${mirror-clone}/bin/mirror-clone";
-          # Retry until the network and the 1Password SSH agent are usable.
+          # Retry until the network (and the SSH key) are usable.
           Restart = "on-failure";
           RestartSec = 60;
         };

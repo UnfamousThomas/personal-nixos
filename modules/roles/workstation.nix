@@ -21,6 +21,7 @@ in
         tailscale
         keyd
         work
+        mirror-repos
       ];
       home-manager.users.${config.my.user}.imports = [ homeManager.workstation ];
     };

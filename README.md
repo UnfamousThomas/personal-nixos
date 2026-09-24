@@ -390,11 +390,31 @@ icons next to Electron's resources.
 `modules/features/apps/mirror-repos.nix` clones the Mirror Studios repos
 (deployments, infra, mono-services, falloria-network, github-actions,
 proto-specs, fallernetes-operator) into `~/projects/Mirror` over SSH. A user
-service does it at login and retries every minute until it works, which
-means until the network is up and 1Password is unlocked (its SSH agent only
-serves keys then). Repos that already exist are skipped, never touched. Run
-`mirror-clone` to do it by hand; to add a repo, append it to the list in that
-file.
+service does it at login and retries every minute until it works. Repos that
+already exist are skipped, never touched. Run `mirror-clone` to do it by
+hand; to add a repo, append it to the list in that file.
+
+Which SSH key it uses:
+
+- **`secrets/mirror-ssh.age` present**: that key (an agenix secret, decrypted
+  to `/run/agenix/mirror-ssh` with the host's age key), so it works on a fresh
+  install before 1Password is set up.
+- **Otherwise**: whatever the 1Password SSH agent offers, once unlocked.
+
+Creating the encrypted key (once, on a machine that has the repo):
+
+```sh
+ssh-keygen -t ed25519 -N "" -C mirror-clone -f /tmp/mirror-ssh   # then add /tmp/mirror-ssh.pub to GitHub
+# recipients: each host's key (`sudo age-keygen -y /var/lib/agenix/host.key`), plus your own if you want to edit it later
+age -r age1...laptop -r age1...desktop -o secrets/mirror-ssh.age /tmp/mirror-ssh
+shred -u /tmp/mirror-ssh
+git add secrets/mirror-ssh.age   # a flake only sees tracked files
+```
+
+Use a dedicated key, not your personal one: the encrypted file lives in this
+public repo (and its history) for good, so anyone who ever gets a host's
+`/var/lib/agenix/host.key` can decrypt it. When a host is added later, re-encrypt
+with `agenix -r` after listing it in `secrets.nix`.
 
 ## Worth checking on first login
 
