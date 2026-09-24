@@ -367,6 +367,25 @@ was explicitly requested or is the direct implementation of something you
 asked for by description (e.g. "a GUI or tray manager" for Bluetooth →
 blueman).
 
+## Work apps (Slack, Granola)
+
+Slack is a plain package. Granola has no Linux build, so
+`modules/features/apps/work.nix` installs `granola-install`, a wrapper
+around the community [Granola-for-Linux](https://github.com/tirtha4/Granola-for-Linux)
+script (copy in `pkgs/granola-install.sh`, with one change: its cache lives
+in `~/.cache/granola`). It repackages Granola's macOS release, so:
+
+1. Download the macOS `.dmg` from granola.ai by hand.
+2. Run `granola-install ~/Downloads/Granola.dmg`. It fetches a matching
+   Linux Electron and builds a native module, so it needs network and takes
+   a few minutes.
+3. Launch Granola from the app launcher (the script writes its own
+   `.desktop` entry). Re-run the command to update after a new release.
+
+The downloaded Electron is a generic Linux binary, which is why `nix-ld` is
+enabled (`work.nix`). Not tested end to end yet: if Granola won't start,
+the likeliest cause is a missing library in that `nix-ld` list.
+
 ## Worth checking on first login
 
 These can only be observed at runtime:
