@@ -61,6 +61,51 @@ in
           };
 
           programs.steam.remotePlay.openFirewall = true;
+
+          # GTX 1060 (Pascal) was on the nouveau driver, which has no
+          # hardware video decode -- Firefox (and GPU work generally) fell
+          # back to software rendering, hence the lag on videos and even on
+          # simple page loads. Switch to NVIDIA's proprietary driver, which
+          # supports Pascal and enables real WebRender/video-decode accel.
+          #
+          # Safe to switch: the running session keeps nouveau until the next
+          # reboot (the module only blacklists nouveau going forward), and
+          # systemd-boot keeps the previous generations (configurationLimit
+          # = 5) selectable at boot as a rollback if the driver ever fails.
+          services.xserver.videoDrivers = [ "nvidia" ];
+          hardware.nvidia = {
+            # modesetting.enable (required for Wayland/niri) is on by
+            # default. NVIDIA's open kernel modules only support Turing and
+            # newer, so Pascal must stay on the closed ones.
+            open = false;
+          };
+
+          # niri wiki (Nvidia page): the driver doesn't return freed buffers
+          # to its pool, so niri's VRAM usage creeps toward ~1GiB instead of
+          # ~100MiB. Declarative version of the per-process app-profile fix.
+          environment.etc."nvidia/nvidia-application-profiles-rc.d/50-limit-free-buffer-pool-in-wayland-compositors".text =
+            builtins.toJSON {
+              rules = [
+                {
+                  pattern = {
+                    feature = "procname";
+                    matches = "niri";
+                  };
+                  profile = "Limit Free Buffer Pool On Wayland Compositors";
+                }
+              ];
+              profiles = [
+                {
+                  name = "Limit Free Buffer Pool On Wayland Compositors";
+                  settings = [
+                    {
+                      key = "GLVidHeapReuseRatio";
+                      value = 0;
+                    }
+                  ];
+                }
+              ];
+            };
         }
 
         (lib.mkIf config.host.bulkDisk.enable {
