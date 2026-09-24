@@ -207,11 +207,16 @@ so the build happens on the machine running the script, not the target.
    target reboots partway through -- `nixos-anywhere` kexecs it into a
    fresh minimal installer before formatting -- that's expected, not a
    failure.
-4. Prints the same "commit and push the real hardware report" reminder
-   as `install.sh` at the end. It uses the shared age key from
-   `~/.config/personal-nixos/age.key` if present, else asks for it. The repo copy on the
-   installed system is at whatever `my.user`'s home directory is (e.g.
-   `~thomaspalts/personal-nixos`).
+4. It uses the shared age key from `~/.config/personal-nixos/age.key` if
+   present, else asks for it. At the end it offers to commit and push the
+   real hardware report (`hosts/<host>/facter.json`) to GitHub from the
+   machine running the script; if you decline or the push fails, it saves
+   the report to `~/<host>-facter.json` instead. Unlike `install.sh`, the
+   repo copy on the installed system (in `my.user`'s home, e.g.
+   `~thomaspalts/personal-nixos`) is a git checkout but still has the
+   *placeholder* report: `git pull` there after the report is pushed, and
+   don't rebuild before that, or the drivers and firmware it enables are
+   dropped.
 
 `--build-on local` (baked into the script) is the whole point: it keeps
 evaluation and building on the machine running the script instead of the
