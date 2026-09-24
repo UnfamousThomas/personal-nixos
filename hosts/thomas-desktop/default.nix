@@ -78,6 +78,12 @@ in
             # default. NVIDIA's open kernel modules only support Turing and
             # newer, so Pascal must stay on the closed ones.
             open = false;
+            # The mainstream driver dropped Pascal (GTX 10-series) as of the
+            # 595.x branch -- the 595.99.02 driver refuses to bind the GTX
+            # 1060 ("supported through the NVIDIA 580.xx Legacy drivers"),
+            # leaving the box without a working GPU (nouveau blacklisted).
+            # Pin the 580 legacy branch, which still supports Pascal.
+            package = config.boot.kernelPackages.nvidiaPackages.legacy_580;
           };
 
           # niri wiki (Nvidia page): the driver doesn't return freed buffers

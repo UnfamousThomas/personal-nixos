@@ -26,6 +26,10 @@
       LC_TIME = "et_EE.UTF-8";
     };
 
-    console.keyMap = "ee";
+    # kbd names the Estonian console keymap "et" (xkeyboard-config's GUI
+    # layout is "ee"). "ee" makes loadkeys fail on every boot, showing a
+    # warning on the console. -nodeadkeys matches niri's layout choice so
+    # the TTY and the desktop type the same way.
+    console.keyMap = "et-nodeadkeys";
   };
 }
