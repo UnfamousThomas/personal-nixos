@@ -38,9 +38,9 @@
             default-column-width { proportion ${toString config.myConfig.niri.defaultColumnWidthProportion}; }
             focus-ring {
                 width 2
-                // Muted sage rather than the raw palette green: same
-                // accent family, much less shouty as a window border.
-                active-color "#7d9c7a"
+                // Softened steel blue rather than the raw palette blue:
+                // same accent family, much less shouty as a window border.
+                active-color "#7b9acb"
                 inactive-color "#45475a"
             }
             border {

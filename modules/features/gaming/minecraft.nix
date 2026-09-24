@@ -2,15 +2,20 @@
   flake.modules.homeManager.minecraft =
     { pkgs, ... }:
     {
-      # Shadows the package's own (bare-bones) entry, same filename. The icon
-      # is still the packaged "lunarclient" one -- a better image needs a
-      # source file to ship, which this repo doesn't have yet.
+      # Shadows the package's own (bare-bones) entry, same filename. The
+      # package's icon sits outside the hicolor tree so a themed name never
+      # resolves; use the official avatar (assets/lunarclient.png) by path.
       xdg.desktopEntries.lunarclient = {
         name = "Lunar Client";
         genericName = "Minecraft Launcher";
         comment = "Minecraft PvP client with mods, cosmetics and performance tweaks";
-        exec = "lunar-client";
-        icon = "lunarclient";
+        exec = "lunarclient %U";
+        icon = "${../../../assets/lunarclient.png}";
+        mimeType = [
+          "application/x-lcpack"
+          "application/x-dawnpack"
+          "x-scheme-handler/lunarclient"
+        ];
         categories = [ "Game" ];
         terminal = false;
       };

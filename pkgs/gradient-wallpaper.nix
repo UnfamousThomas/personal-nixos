@@ -13,12 +13,13 @@ stdenvNoCC.mkDerivation {
   # Catppuccin Mocha base -> accent gradients, rendered reproducibly at
   # build time instead of checking binary images into the repo.
   # gradient-mocha.png is the default (Stylix points at it) and matches the
-  # muted green accent; the rest exist so Noctalia's wallpaper picker,
+  # blue accent; the rest exist so Noctalia's wallpaper picker,
   # which browses a directory, has something to show.
   buildPhase = ''
     runHook preBuild
     render() { magick -size 3840x2160 gradient:'#1e1e2e'-"$2" "$1.png"; }
-    render gradient-mocha '#4f6b4d'   # default: muted green
+    render gradient-mocha '#3d4f73'   # default: slate blue
+    render gradient-green '#4f6b4d'
     render gradient-mauve '#6e5a8a'
     render gradient-blue  '#4a6a9c'
     render gradient-teal  '#3f7a72'
