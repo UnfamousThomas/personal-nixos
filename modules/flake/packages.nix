@@ -10,6 +10,7 @@
           sony-device-center
           gradient-wallpaper
           pi-coding-agent
+          pi-agent
           kotlin-lsp
           minecraft-mcp-server
           ;

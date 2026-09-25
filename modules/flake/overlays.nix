@@ -9,6 +9,7 @@
     granola = final.callPackage ../../pkgs/granola.nix { };
     piExtensions = final.callPackage ../../pkgs/pi-extensions.nix { };
     kotlin-lsp = final.callPackage ../../pkgs/kotlin-lsp.nix { };
+    pi-agent = final.callPackage ../../pkgs/pi-agent.nix { };
     minecraft-mcp-server = final.callPackage ../../pkgs/minecraft-mcp-server.nix {
       src = inputs.minecraft-mcp-server;
     };

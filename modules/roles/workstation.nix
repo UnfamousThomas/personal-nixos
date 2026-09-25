@@ -35,6 +35,7 @@ in
     devenv
     zed
     zed-opencode
+    pi
     opencode
     discord
     sony-device-center
