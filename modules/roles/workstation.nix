@@ -36,7 +36,6 @@ in
     zed
     zed-pi
     pi
-    opencode
     discord
     sony-device-center
     hidden-apps

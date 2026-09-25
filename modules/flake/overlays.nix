@@ -82,30 +82,5 @@
     openwave = inputs.openwave.packages.${final.stdenv.hostPlatform.system}.default.overrideAttrs (_: {
       doCheck = false;
     });
-
-    # Upstream's own build script (script/build.ts) compiles the binary
-    # then immediately runs `opencode --version` as a smoke test and
-    # `process.exit(1)`s the whole build if that crashes; Nix's
-    # doInstallCheck (versionCheckHook) does the same thing again after
-    # install. Both SIGSEGV in this repo's build environments (Nix's
-    # sandbox, WSL2) for a cause that isn't pinned down (not a missing AVX2:
-    # WSL2 reports avx2). Neither check reflects whether the binary works on
-    # real target hardware, so both are skipped rather than letting an
-    # environment-specific crash block the whole system build.
-    opencode =
-      inputs.opencode.packages.${final.stdenv.hostPlatform.system}.opencode.overrideAttrs
-        (old: {
-          postPatch = (old.postPatch or "") + ''
-            substituteInPlace packages/opencode/script/build.ts \
-              --replace-fail 'process.exit(1)' 'console.warn("(smoke test failed; skipped, see modules/flake/overlays.nix)")'
-          '';
-          doInstallCheck = false;
-          # Upstream's postInstall runs $out/bin/opencode (to generate shell
-          # completions), which segfaults the same way: every invocation
-          # crashes in this sandbox, consistent with Bun's compiled-binary
-          # $bunfs self-unpack tripping over the sandbox's restricted /proc
-          # and syscalls. Dropped entirely; the completions aren't worth it.
-          postInstall = "";
-        });
   };
 }

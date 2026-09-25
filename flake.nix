@@ -54,11 +54,6 @@
     # See https://docs.noctalia.dev/noctalia/getting-started/nixos/
     noctalia.url = "github:noctalia-dev/noctalia";
 
-    # Upstream's own flake -- deliberately NOT nixpkgs' `opencode` package,
-    # which lags behind releases (per user request). Not followed, to keep
-    # their pinned Bun/native-build recipe intact.
-    opencode.url = "github:sst/opencode";
-
     # OpenWave ships its own maintained flake (rust-overlay + buildRustPackage);
     # use it directly rather than re-packaging.
     openwave.url = "github:rikkichy/openwave";

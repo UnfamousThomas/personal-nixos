@@ -6,7 +6,7 @@
   #
   # Accepted trade-off: the docker group is root-equivalent (`docker run -v
   # /:/host ...`), so anything running as this user -- including AI agents
-  # (zed-opencode) and project code under devenv -- can become root without
+  # (Pi via zed-pi) and project code under devenv -- can become root without
   # the sudo password. Same for Nix trusted-users (core/nix-settings.nix).
   flake.modules.nixos.docker =
     { config, ... }:
