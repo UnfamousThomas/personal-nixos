@@ -101,12 +101,19 @@
             default-column-width { fixed 720; }
         }
 
-        // Quick-note popup (Mod+N): a small floating terminal, centered.
+        // Note popups (terminal/notes.nix): Mod+N writes a note in a small
+        // floating terminal, Mod+Shift+N searches them in a larger one.
         window-rule {
             match app-id=r#"^dev\.thomas\.quicknote$"#
             open-floating true
             default-column-width { fixed 760; }
             default-window-height { fixed 460; }
+        }
+        window-rule {
+            match app-id=r#"^dev\.thomas\.notes$"#
+            open-floating true
+            default-column-width { fixed 1120; }
+            default-window-height { fixed 640; }
         }
 
         ${lib.optionalString (cursor != null) ''
@@ -129,8 +136,9 @@
             Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
             Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
-            // New zk note in ~/notes/inbox (terminal/zk.nix); closes with the editor.
-            Mod+N hotkey-overlay-title="Quick Note (zk)" { spawn "ghostty" "--class=dev.thomas.quicknote" "--title=Quick Note" "-e" "zk" "new" "inbox"; }
+            // Notes (terminal/notes.nix); each popup closes when its editor does.
+            Mod+N hotkey-overlay-title="New Note" { spawn "ghostty" "--class=dev.thomas.quicknote" "--title=New Note" "-e" "note" "new"; }
+            Mod+Shift+N hotkey-overlay-title="Find Notes" { spawn "ghostty" "--class=dev.thomas.notes" "--title=Notes" "-e" "note" "find"; }
             // Tapping Super sends the F13 keycode (keyd.nix). niri binds by
             // keysym and xkeyboard-config maps that keycode to XF86Tools.
             // Mod+A opens the launcher too, without keyd.
