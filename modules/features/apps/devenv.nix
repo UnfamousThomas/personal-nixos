@@ -9,6 +9,14 @@
     { pkgs, ... }:
     {
       home.packages = [ pkgs.devenv ];
+
+      # devenv's native auto-activation (`devenv allow` in a project, then
+      # cd in). bash/zsh don't load the hook on their own, unlike fish/nu.
+      programs.zsh.initContent = ''
+        eval "$(devenv hook zsh)"
+      '';
+
+      # Kept for projects that still ship an .envrc.
       programs.direnv = {
         enable = true;
         enableZshIntegration = true;
