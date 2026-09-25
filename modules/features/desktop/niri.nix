@@ -17,19 +17,49 @@
   # KDL file. myConfig.niri.{extraInput,extraAutostart} (declared in
   # core/options.nix) let other features extend it without duplicating it.
   flake.modules.homeManager.niri =
-    { lib, config, ... }:
+    {
+      lib,
+      config,
+      pkgs,
+      ...
+    }:
     let
       # Cursor theme for niri and everything it spawns, from stylix.cursor.
       cursor = config.stylix.cursor or null;
+
+      # Searchable, scrollable keybind list in fuzzel. niri's built-in hotkey
+      # overlay can't scroll and runs off the bottom of the screen. Built at
+      # runtime from the live config: titled binds show their title, the
+      # rest their action name.
+      keybinds = pkgs.writeShellApplication {
+        name = "keybinds";
+        runtimeInputs = [
+          pkgs.gnused
+          pkgs.util-linux
+          pkgs.fuzzel
+        ];
+        text = ''
+          sed -n '/^binds {/,/^}/p' "$HOME/.config/niri/config.kdl" \
+            | sed -E -n \
+                -e 's/^[[:space:]]*([^[:space:]]+)[[:space:]].*hotkey-overlay-title="([^"]*)".*/\1\t\2/p' \
+                -e t \
+                -e 's/^[[:space:]]*([A-Za-z0-9_+]+)[[:space:]]+([a-z-]+=[^[:space:]]+[[:space:]]+)*\{[[:space:]]*([a-z0-9-]+).*/\1\t\3/p' \
+            | column -t -s "$(printf '\t')" \
+            | fuzzel --dmenu --prompt "Keys: " --width 60 --lines 20 > /dev/null || true
+        '';
+      };
     in
     {
-      # A launcher entry for the hotkey overlay (also on Mod+F1), so the
+      home.packages = [ keybinds ];
+      programs.fuzzel.enable = true; # themed by Stylix
+
+      # A launcher entry for the keybind list (also on Mod+F1), so the
       # shortcuts can be found by searching for them.
       xdg.desktopEntries.keyboard-shortcuts = {
         name = "Keyboard Shortcuts";
-        genericName = "Hotkey Overlay";
+        genericName = "Keybind List";
         comment = "Show the list of keyboard shortcuts";
-        exec = "niri msg action show-hotkey-overlay";
+        exec = "keybinds";
         icon = "input-keyboard";
         categories = [ "Utility" ];
         terminal = false;
@@ -201,8 +231,8 @@
 
             Mod+Shift+E { quit; }
             // Mod+F1 works on any layout; Slash is Shift+7 on Estonian.
-            Mod+F1 { show-hotkey-overlay; }
-            Mod+Shift+Slash { show-hotkey-overlay; }
+            Mod+F1 { spawn "keybinds"; }
+            Mod+Shift+Slash { spawn "keybinds"; }
             Print { screenshot; }
             Mod+Print { screenshot-screen; }
 
