@@ -6,7 +6,7 @@
       # (`nix build .#sony-device-center`), plus the locked disko for
       # README "Adding the bulk disk later".
       packages = {
-        inherit (pkgs) sony-device-center gradient-wallpaper;
+        inherit (pkgs) sony-device-center gradient-wallpaper pi-coding-agent;
         inherit (inputs'.disko.packages) disko;
       };
 
