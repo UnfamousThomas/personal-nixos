@@ -27,6 +27,7 @@ in
   flake.modules.homeManager.base.imports = with homeManager; [
     shell
     cli-tools
+    zk
     git
     gh
     ssh

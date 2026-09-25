@@ -101,6 +101,14 @@
             default-column-width { fixed 720; }
         }
 
+        // Quick-note popup (Mod+N): a small floating terminal, centered.
+        window-rule {
+            match app-id=r#"^dev\.thomas\.quicknote$"#
+            open-floating true
+            default-column-width { fixed 760; }
+            default-window-height { fixed 460; }
+        }
+
         ${lib.optionalString (cursor != null) ''
           cursor {
               xcursor-theme "${cursor.name}"
@@ -121,6 +129,8 @@
             Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
             Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
+            // New zk note in ~/notes/inbox (terminal/zk.nix); closes with the editor.
+            Mod+N hotkey-overlay-title="Quick Note (zk)" { spawn "ghostty" "--class=dev.thomas.quicknote" "--title=Quick Note" "-e" "zk" "new" "inbox"; }
             // Tapping Super sends the F13 keycode (keyd.nix). niri binds by
             // keysym and xkeyboard-config maps that keycode to XF86Tools.
             // Mod+A opens the launcher too, without keyd.
