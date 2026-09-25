@@ -8,6 +8,7 @@
     gradient-wallpaper = final.callPackage ../../pkgs/gradient-wallpaper.nix { };
     granola = final.callPackage ../../pkgs/granola.nix { };
     piExtensions = final.callPackage ../../pkgs/pi-extensions.nix { };
+    kotlin-lsp = final.callPackage ../../pkgs/kotlin-lsp.nix { };
 
     # nixpkgs' recipe, pinned to the newest upstream release instead of
     # whatever nixpkgs has caught up to. To update, bump `version` and set the
