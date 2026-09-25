@@ -43,6 +43,7 @@ hosts/
   thomas-laptop/              default.nix (the host module), disko.nix, facter.json
   thomas-desktop/             same, plus disko-bulk.nix (the optional HDD)
 pkgs/                         custom derivations (sony-device-center, gradient-wallpaper)
+pi/                           the Pi coding agent setup: module, overlay, packages, guard (self-contained; see pi/README.md)
 install/install.sh            interactive installer
 templates/devenv-project/     `nix flake init -t` template for new projects
 secrets.nix                   agenix: secret -> which keys may decrypt it
@@ -370,10 +371,7 @@ Most things come straight from nixpkgs. These don't:
 | `sony-device-center` | `pkgs/sony-device-center.nix`, custom derivation | No Nix packaging exists upstream | `git ls-remote --tags https://github.com/marconvcm/sony-device-center.git`, put the new tag's dereferenced (`^{}`) commit in `rev` and bump `version`, then `nix build .#sony-device-center` |
 | `gradient-wallpaper` | `pkgs/gradient-wallpaper.nix` | Trivial, reproducibly generated (ImageMagick) rather than checking in a binary image | Edit the colors/size in the derivation directly |
 | `openwave` | flake input (`github:rikkichy/openwave`) | Upstream maintains a complete, working flake | `nix flake update openwave` |
-| `pi-coding-agent` | override of nixpkgs' recipe in `modules/flake/overlays.nix` | Tracks the newest upstream release rather than nixpkgs' pin | Bump `version` and the three hashes as described in the comment there, then `nix build .#pi-coding-agent` |
-| `pi-mcp-adapter`, `pi-subagents`, `pi-lsp`, `pi-acp` | `pkgs/pi-extensions.nix` | Not in nixpkgs. Built from pinned sources; Pi loads them from `~/.pi/agent/settings.json`'s `packages` (kept in sync by an activation step in `modules/features/apps/pi.nix`). Lockfiles in `pkgs/pi/` are trimmed of dev/peer dependencies | Bump `version` and hashes (comment at the top of the file); if dependencies changed, regenerate the lockfile as described there |
-| `kotlin-lsp` | `pkgs/kotlin-lsp.nix` | JetBrains' standalone Kotlin server; not in nixpkgs. Repackages the Linux `.vsix` with its bundled JetBrains Runtime | New version from the release page's vsix links, `nix store prefetch-file` for the hash |
-| `minecraft-mcp-server` | flake input (`github:yuniko-software/minecraft-mcp-server`, non-flake) + `pkgs/minecraft-mcp-server.nix` | Bot for testing Minestom servers over MCP. Upstream lags new Minecraft releases: point the input at a fork with newer `mineflayer`/`minecraft-data` when needed | `nix flake update minecraft-mcp-server`, then refresh `npmDepsHash` if the lockfile changed |
+| Pi coding agent: `pi-coding-agent`, its extensions, `kotlin-lsp`, `minecraft-mcp-server` | `pi/` (self-contained, shareable; see `pi/README.md`) | The newest Pi release plus extensions and tools nixpkgs doesn't have, built from pinned sources | `pi/README.md`, "Updating" |
 | `noctalia` | flake input (`github:noctalia-dev/noctalia`) | Provides the NixOS + Home Manager modules and the package they install (served by noctalia.cachix.org) | `nix flake update noctalia` |
 
 ## GUI apps that ended up installed without being named explicitly
