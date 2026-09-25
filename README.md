@@ -36,7 +36,7 @@ modules/
     terminal/                 ghostty, zsh+starship, CLI tools
     browser/                  firefox
     apps/                     git, gh, ssh, 1Password, devenv, docker, tailscale,
-                                discord, sony-device-center, openwave, zed/
+                                discord, sony-device-center, openwave, jetbrains
     gaming/                   steam, minecraft
     laptop/                   power, touchpad (laptop-only)
 hosts/

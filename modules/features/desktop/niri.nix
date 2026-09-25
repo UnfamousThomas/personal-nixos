@@ -163,7 +163,7 @@
             Mod+Return hotkey-overlay-title="Open a Terminal" { spawn "ghostty"; }
             Mod+D hotkey-overlay-title="Open Firefox" { spawn "firefox"; }
             Mod+E hotkey-overlay-title="Open File Manager" { spawn "nautilus"; }
-            Mod+Z hotkey-overlay-title="Open Zed" { spawn "zeditor"; }
+            Mod+Z hotkey-overlay-title="Open IntelliJ IDEA" { spawn "idea"; }
             Mod+C hotkey-overlay-title="Open Discord" { spawn "vesktop"; }
             Mod+P hotkey-overlay-title="Open 1Password" { spawn "1password"; }
             // Notes (terminal/notes.nix); each popup closes when its editor does.

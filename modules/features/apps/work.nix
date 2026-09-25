@@ -24,12 +24,18 @@ in
     };
 
   flake.modules.homeManager.work =
-    { pkgs, ... }:
+    { lib, pkgs, ... }:
     {
+      # devbase's team global tools (Flox `global` environment: Claude Code,
+      # jq, ...) in every zsh. Published with devbase's environments/global.toml.
+      # Runs last, so anything earlier in .zshrc is already set up.
+      programs.zsh.initContent = lib.mkAfter ''
+        eval "$(flox activate -r thomas-palts/global -m run)"
+      '';
+
       home.packages = [
         pkgs.slack
         pkgs.granola
-        pkgs.claude-code
         # Flox isn't in nixpkgs: from its own flake (input in flake.nix, cache in
         # core/nix-settings.nix).
         inputs.flox.packages.${pkgs.stdenv.hostPlatform.system}.default

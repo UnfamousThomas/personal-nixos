@@ -73,6 +73,11 @@
     # nixpkgs: its own pins are what the prebuilt cache (cache.flox.dev) matches.
     flox.url = "github:flox/flox/latest";
 
+    # JetBrains Marketplace plugins as derivations (nixpkgs has none), for the
+    # IDEs in features/apps/jetbrains.nix.
+    nix-jetbrains-plugins.url = "github:nix-community/nix-jetbrains-plugins";
+    nix-jetbrains-plugins.inputs.nixpkgs.follows = "nixpkgs";
+
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };

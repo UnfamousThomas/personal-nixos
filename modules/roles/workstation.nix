@@ -33,7 +33,7 @@ in
     firefox
     onepassword
     devenv
-    zed
+    jetbrains
     discord
     sony-device-center
     hidden-apps
