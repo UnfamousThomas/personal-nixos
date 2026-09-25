@@ -4,6 +4,7 @@
   fetchFromGitHub,
   fetchurl,
   jq,
+  stdenvNoCC,
 }:
 # Pi extensions (and the pi-acp bridge), built from pinned upstream sources so
 # nothing is fetched at runtime by `pi install`. Update recipe for any of them:
@@ -42,6 +43,26 @@ let
         "lockFile"
         "postPatch"
       ]
+    );
+
+  # For an extension with no runtime dependencies (only Pi's own peers): just
+  # the files its package.json publishes, no node_modules to fetch or lock.
+  buildPiSourceExtension =
+    args:
+    stdenvNoCC.mkDerivation (
+      {
+        dontBuild = true;
+        installPhase = ''
+          runHook preInstall
+          dest=$out/lib/node_modules/${args.pname}
+          mkdir -p $dest
+          for f in package.json README.md LICENSE tsconfig.json extensions src; do
+            [ -e "$f" ] && cp -r "$f" $dest/
+          done
+          runHook postInstall
+        '';
+      }
+      // args
     );
 
   # Where a Pi `packages` entry (~/.pi/agent/settings.json) should point.
@@ -106,6 +127,27 @@ rec {
     meta = {
       description = "Declarative LSP diagnostics and navigation tools for the Pi coding agent";
       homepage = "https://www.npmjs.com/package/pi-lsp";
+      license = lib.licenses.mit;
+    };
+  };
+
+  # Automatic model routing among the models Pi has credentials for (cost,
+  # capability, health, failover); reads ~/.pi/agent/auto-model.json. Adds a
+  # virtual `pi-auto-model/auto` model, so it composes with any provider,
+  # including the Cloudflare AI Gateway one Pi ships. Its only network access
+  # is a daily refresh of the LiteLLM price catalog (pricing.litellm.enabled).
+  pi-auto-model = buildPiSourceExtension rec {
+    pname = "pi-auto-model";
+    version = "0.8.4";
+    src = fetchFromGitHub {
+      owner = "nickpkg";
+      repo = "pi-auto-model";
+      tag = "v${version}";
+      hash = "sha256-fK2XRRJSL5i1sY6eThRm3rwwHC3P+By+tZW2/6PUFVA=";
+    };
+    meta = {
+      description = "Automatic, explainable model routing for the Pi coding agent";
+      homepage = "https://github.com/nickpkg/pi-auto-model";
       license = lib.licenses.mit;
     };
   };

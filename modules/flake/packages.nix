@@ -19,6 +19,7 @@
           pi-subagents
           pi-lsp
           pi-acp
+          pi-auto-model
           ;
         inherit (inputs'.disko.packages) disko;
       };
