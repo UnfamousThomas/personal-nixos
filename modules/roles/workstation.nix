@@ -34,8 +34,8 @@ in
     onepassword
     devenv
     zed
-    zed-opencode
-    opencode
+    zed-pi
+    pi
     discord
     sony-device-center
     hidden-apps

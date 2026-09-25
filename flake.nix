@@ -54,15 +54,18 @@
     # See https://docs.noctalia.dev/noctalia/getting-started/nixos/
     noctalia.url = "github:noctalia-dev/noctalia";
 
-    # Upstream's own flake -- deliberately NOT nixpkgs' `opencode` package,
-    # which lags behind releases (per user request). Not followed, to keep
-    # their pinned Bun/native-build recipe intact.
-    opencode.url = "github:sst/opencode";
-
     # OpenWave ships its own maintained flake (rust-overlay + buildRustPackage);
     # use it directly rather than re-packaging.
     openwave.url = "github:rikkichy/openwave";
     openwave.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Minecraft bot MCP server for testing Minestom servers. A plain source
+    # input: upstream ships no flake, and updating (or pointing this at a
+    # fork, e.g. for newer Minecraft versions) is one line here plus
+    # `nix flake update minecraft-mcp-server`; pkgs/minecraft-mcp-server.nix
+    # then needs its npmDepsHash refreshed if the lockfile changed.
+    minecraft-mcp-server.url = "github:yuniko-software/minecraft-mcp-server";
+    minecraft-mcp-server.flake = false;
 
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";

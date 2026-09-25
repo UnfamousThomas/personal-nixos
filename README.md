@@ -43,6 +43,7 @@ hosts/
   thomas-laptop/              default.nix (the host module), disko.nix, facter.json
   thomas-desktop/             same, plus disko-bulk.nix (the optional HDD)
 pkgs/                         custom derivations (sony-device-center, gradient-wallpaper)
+pi/                           the Pi coding agent setup: module, overlay, packages, guard (self-contained; see pi/README.md)
 install/install.sh            interactive installer
 templates/devenv-project/     `nix flake init -t` template for new projects
 secrets.nix                   agenix: secret -> which keys may decrypt it
@@ -370,7 +371,7 @@ Most things come straight from nixpkgs. These don't:
 | `sony-device-center` | `pkgs/sony-device-center.nix`, custom derivation | No Nix packaging exists upstream | `git ls-remote --tags https://github.com/marconvcm/sony-device-center.git`, put the new tag's dereferenced (`^{}`) commit in `rev` and bump `version`, then `nix build .#sony-device-center` |
 | `gradient-wallpaper` | `pkgs/gradient-wallpaper.nix` | Trivial, reproducibly generated (ImageMagick) rather than checking in a binary image | Edit the colors/size in the derivation directly |
 | `openwave` | flake input (`github:rikkichy/openwave`) | Upstream maintains a complete, working flake | `nix flake update openwave` |
-| `opencode` | flake input (`github:sst/opencode`) | Deliberately not nixpkgs' `opencode` (lags releases); upstream's own flake handles the Bun-compile packaging | `nix flake update opencode` |
+| Pi coding agent: `pi-coding-agent`, its extensions, `kotlin-lsp`, `minecraft-mcp-server` | `pi/` (self-contained, shareable; see `pi/README.md`) | The newest Pi release plus extensions and tools nixpkgs doesn't have, built from pinned sources | `pi/README.md`, "Updating" |
 | `noctalia` | flake input (`github:noctalia-dev/noctalia`) | Provides the NixOS + Home Manager modules and the package they install (served by noctalia.cachix.org) | `nix flake update noctalia` |
 
 ## GUI apps that ended up installed without being named explicitly

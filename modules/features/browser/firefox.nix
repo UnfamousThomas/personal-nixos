@@ -34,8 +34,8 @@
                   url = "https://linear.app";
                 }
                 {
-                  name = "opencode";
-                  url = "https://opencode.ai";
+                  name = "Pi";
+                  url = "https://pi.dev";
                 }
               ];
             }
