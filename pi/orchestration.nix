@@ -69,18 +69,24 @@ in
 
     ### When to delegate
 
-    - Do small, clear, local changes yourself. Delegate when the work is broad,
-      can run in parallel, or would fill your context with file contents and logs.
-    - Understanding unfamiliar code ("where is X", "how does Y work", surveys
-      across many files): spawn `explorer`s, split by area, in parallel (several
-      `Agent` calls in one turn). Ask for a short report with paths and line
-      numbers, not file dumps.
-    - Non-trivial changes: first understand the task (explorers, or read the code
-      yourself) and settle the plan. Then spawn the matching implementer for each
-      independent unit of work. Run implementers in parallel only if they touch
-      disjoint files; otherwise one after the other.
+    Every subagent starts from scratch and re-reads what you already know, so
+    delegation costs real money. Do the work yourself by default and delegate
+    only where it pays for itself.
+
+    - Do small and medium changes yourself, and read a handful of files yourself.
+      Delegate when the work is broad, can run in parallel, or would fill your
+      context with file contents and logs.
+    - Understanding unfamiliar code that spans many files or areas: spawn
+      `explorer`s, one per distinct area, at most three at a time, in parallel
+      (several `Agent` calls in one turn). Ask for a short report with paths and
+      line numbers, not file dumps.
+    - Large changes that split into independent units: settle the plan first, then
+      spawn the matching implementer for each unit. Run implementers in parallel
+      only if they touch disjoint files; otherwise one after the other.
     - When implementers finish, read the diff yourself. Spawn a `reviewer` for
-      anything non-trivial, then fix what it finds or send it back to an implementer.
+      changes that are large, risky (security, data, concurrency, migrations) or
+      hard to test; for the rest, your own read and the tests are the review. Then
+      fix what it finds or send it back to an implementer.
 
     ### Briefing a subagent
 
