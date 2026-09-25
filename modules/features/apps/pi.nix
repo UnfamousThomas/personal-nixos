@@ -58,6 +58,24 @@
           cwd = "{root}";
         }
         // extra;
+      # YAML that belongs to Ansible: anything under these directories. Globs
+      # match paths relative to the directory Pi was started in, so a bare
+      # `playbooks/` works from inside an ansible/ dir as well as above it.
+      ansibleGlobs =
+        lib.concatMap
+          (dir: [
+            "**/${dir}/**/*.yaml"
+            "**/${dir}/**/*.yml"
+          ])
+          [
+            "ansible"
+            "playbooks"
+            "roles"
+            "group_vars"
+            "host_vars"
+            "inventories"
+          ];
+
       lsp = {
         version = 1;
         servers = [
@@ -109,7 +127,7 @@
               "**/*.yaml"
               "**/*.yml"
             ];
-            exclude = [ "**/ansible/**" ];
+            exclude = ansibleGlobs;
             rootMarkers = [ ".git" ];
             languageIdByExtension = {
               ".yaml" = "yaml";
@@ -117,15 +135,15 @@
             };
             diagnosticsWaitMs = 2000;
           })
-          # Anything under an `ansible/` directory that has an ansible.cfg
-          # above it (Mirror's infra/platform/ansible). Its linting shells
+          # Ansible files (see ansibleGlobs) under a directory with an
+          # ansible.cfg (Mirror's infra/platform/ansible). Its linting shells
           # out to ansible-lint.
           (server "ansible" "ansible-language-server" [ "--stdio" ] {
-            include = [
-              "**/ansible/**/*.yaml"
-              "**/ansible/**/*.yml"
+            include = ansibleGlobs;
+            rootMarkers = [
+              "ansible.cfg"
+              ".ansible-lint"
             ];
-            rootMarkers = [ "ansible.cfg" ];
             languageIdByExtension = {
               ".yaml" = "ansible";
               ".yml" = "ansible";
