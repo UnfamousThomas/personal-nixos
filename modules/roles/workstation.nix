@@ -34,7 +34,7 @@ in
     onepassword
     devenv
     zed
-    zed-opencode
+    zed-pi
     pi
     opencode
     discord
