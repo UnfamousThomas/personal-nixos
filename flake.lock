@@ -272,7 +272,7 @@
         "type": "gitlab"
       }
     },
-    "home-manager_2": {
+    "home-manager": {
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
@@ -333,6 +333,22 @@
       "original": {
         "owner": "vic",
         "repo": "import-tree",
+        "type": "github"
+      }
+    },
+    "minecraft-mcp-server": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1775336369,
+        "narHash": "sha256-MbbtH8Nk//UXLDllXPdVO9dQVlc872LeCZFolaCGyQc=",
+        "owner": "yuniko-software",
+        "repo": "minecraft-mcp-server",
+        "rev": "240c8cec337ce152cc9e058ebdef511055808406",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yuniko-software",
+        "repo": "minecraft-mcp-server",
         "type": "github"
       }
     },
@@ -494,8 +510,9 @@
         "agenix": "agenix",
         "disko": "disko",
         "flake-parts": "flake-parts",
-        "home-manager": "home-manager_2",
+        "home-manager": "home-manager",
         "import-tree": "import-tree",
+        "minecraft-mcp-server": "minecraft-mcp-server",
         "nixos-facter": "nixos-facter",
         "nixpkgs": "nixpkgs",
         "noctalia": "noctalia",

@@ -11,6 +11,7 @@
           gradient-wallpaper
           pi-coding-agent
           kotlin-lsp
+          minecraft-mcp-server
           ;
         inherit (pkgs.piExtensions)
           pi-mcp-adapter

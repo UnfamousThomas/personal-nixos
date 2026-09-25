@@ -64,6 +64,14 @@
     openwave.url = "github:rikkichy/openwave";
     openwave.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Minecraft bot MCP server for testing Minestom servers. A plain source
+    # input: upstream ships no flake, and updating (or pointing this at a
+    # fork, e.g. for newer Minecraft versions) is one line here plus
+    # `nix flake update minecraft-mcp-server`; pkgs/minecraft-mcp-server.nix
+    # then needs its npmDepsHash refreshed if the lockfile changed.
+    minecraft-mcp-server.url = "github:yuniko-software/minecraft-mcp-server";
+    minecraft-mcp-server.flake = false;
+
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
