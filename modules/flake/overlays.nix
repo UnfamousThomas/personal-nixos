@@ -7,6 +7,7 @@
     sony-device-center = final.callPackage ../../pkgs/sony-device-center.nix { };
     gradient-wallpaper = final.callPackage ../../pkgs/gradient-wallpaper.nix { };
     granola = final.callPackage ../../pkgs/granola.nix { };
+    piExtensions = final.callPackage ../../pkgs/pi-extensions.nix { };
 
     # nixpkgs' recipe, pinned to the newest upstream release instead of
     # whatever nixpkgs has caught up to. To update, bump `version` and set the

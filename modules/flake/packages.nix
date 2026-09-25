@@ -7,6 +7,12 @@
       # README "Adding the bulk disk later".
       packages = {
         inherit (pkgs) sony-device-center gradient-wallpaper pi-coding-agent;
+        inherit (pkgs.piExtensions)
+          pi-mcp-adapter
+          pi-subagents
+          pi-lsp
+          pi-acp
+          ;
         inherit (inputs'.disko.packages) disko;
       };
 
