@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, inputs, ... }:
 let
   inherit (config.flake.modules) homeManager;
 in
@@ -15,6 +15,12 @@ in
       # workarounds. Rotate this file if platform/infra ever reissues the
       # root CA (see infra repo's root_ca.crt).
       security.pki.certificateFiles = [ ../../../assets/falloria-internal-ca.crt ];
+
+      # Flox sends usage metrics by default; this is its documented
+      # system-wide switch (flox-config(1)).
+      environment.etc."flox.toml".text = ''
+        disable_metrics = true
+      '';
     };
 
   flake.modules.homeManager.work =
@@ -24,6 +30,9 @@ in
         pkgs.slack
         pkgs.granola
         pkgs.claude-code
+        # Flox isn't in nixpkgs: from its own flake (input in flake.nix, cache in
+        # core/nix-settings.nix).
+        inputs.flox.packages.${pkgs.stdenv.hostPlatform.system}.default
       ];
     };
 }

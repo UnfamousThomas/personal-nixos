@@ -13,10 +13,12 @@
     extra-substituters = [
       "https://nix-community.cachix.org"
       "https://noctalia.cachix.org"
+      "https://cache.flox.dev"
     ];
     extra-trusted-public-keys = [
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+      "flox-cache-public-1:7F4OyH7ZCnFhcze3fJdfyXYLQw/aV7GEed86nQ7IsOs="
     ];
   };
 
@@ -66,6 +68,10 @@
     # then needs its npmDepsHash refreshed if the lockfile changed.
     minecraft-mcp-server.url = "github:yuniko-software/minecraft-mcp-server";
     minecraft-mcp-server.flake = false;
+
+    # Flox (dev environments; not in nixpkgs). Deliberately NOT following
+    # nixpkgs: its own pins are what the prebuilt cache (cache.flox.dev) matches.
+    flox.url = "github:flox/flox/latest";
 
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
