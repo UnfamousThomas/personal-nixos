@@ -15,78 +15,44 @@
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/1password-x-password-manager/latest.xpi";
           installation_mode = "force_installed";
         };
+        # Stylus (user styles live in the extension's own storage, so the
+        # styles themselves can't be declared here)
+        "{7a7a4a92-a2a0-41d1-9fd7-1e92480d612d}" = {
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/styl-us/latest.xpi";
+          installation_mode = "force_installed";
+        };
       };
-      policies.Bookmarks = [
-        {
-          toplevel_name = "Bookmarks Toolbar";
-          Toolbar = true;
-          children = [
+      # Firefox's Bookmarks policy is a flat list (Title/URL/Placement/Folder),
+      # not Chrome's nested name/url/children format.
+      policies.Bookmarks =
+        let
+          bm =
+            folder: title: url:
             {
-              name = "Code";
-              type = "folder";
-              children = [
-                {
-                  name = "GitHub";
-                  url = "https://github.com/MirrorStudios";
-                }
-                {
-                  name = "Linear";
-                  url = "https://linear.app";
-                }
-                {
-                  name = "Pi";
-                  url = "https://pi.dev";
-                }
-              ];
+              Title = title;
+              URL = url;
+              Placement = "toolbar";
             }
-            {
-              name = "Reading";
-              type = "folder";
-              children = [
-                {
-                  name = "Webnovel";
-                  url = "https://www.webnovel.com";
-                }
-                {
-                  name = "Patreon";
-                  url = "https://www.patreon.com";
-                }
-                {
-                  name = "ScribbleHub";
-                  url = "https://www.scribblehub.com";
-                }
-                {
-                  name = "DemonicScans";
-                  url = "https://demonicscans.org";
-                }
-              ];
-            }
-            {
-              name = "Learning";
-              type = "folder";
-              children = [
-                {
-                  name = "YouTube";
-                  url = "https://www.youtube.com";
-                }
-                {
-                  name = "Master.dev";
-                  url = "https://master.dev";
-                }
-              ];
-            }
-            {
-              name = "Gmail";
-              url = "https://mail.google.com";
-            }
-            {
-              name = "ERR";
-              url = "https://www.err.ee";
-            }
-          ];
-        }
-      ];
+            // (if folder == null then { } else { Folder = folder; });
+        in
+        [
+          (bm "Code" "GitHub" "https://github.com/MirrorStudios")
+          (bm "Code" "Linear" "https://linear.app")
+          (bm "Code" "Greptile" "https://app.greptile.com")
+          (bm "Code" "Claude" "https://claude.ai")
+          (bm "Reading" "Webnovel" "https://www.webnovel.com")
+          (bm "Reading" "Patreon" "https://www.patreon.com")
+          (bm "Reading" "ScribbleHub" "https://www.scribblehub.com")
+          (bm "Reading" "DemonicScans" "https://demonicscans.org")
+          (bm "Learning" "Master.dev" "https://master.dev")
+          (bm "Random" "X" "https://x.com")
+          (bm "Random" "YouTube" "https://www.youtube.com")
+          (bm null "Gmail" "https://mail.google.com")
+          (bm null "ERR" "https://www.err.ee")
+        ];
       policies.Preferences = {
+        # Toolbar is otherwise only shown on the new-tab page.
+        "browser.toolbars.bookmarks.visibility" = "always";
         # No "local weather" card on the new-tab page.
         "browser.newtabpage.activity-stream.showWeather" = false;
         "browser.newtabpage.activity-stream.system.showWeather" = false;
