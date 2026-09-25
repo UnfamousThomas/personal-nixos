@@ -30,7 +30,7 @@
         inherit (pkgs) sony-device-center gradient-wallpaper;
         # The guard extension's rules, exercised with fake tool calls.
         pi-guard = pkgs.runCommand "pi-guard-test" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-          cp -r ${../features/apps/pi} src
+          cp -r ${../../pi/guard} src
           cd src
           node --test guard.test.ts
           touch $out

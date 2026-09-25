@@ -20,10 +20,21 @@
  * (`sh -c "$cmd"`, a variable) or a tool from another extension / MCP server
  * gets past it. It stops the model blundering, not a determined workaround.
  *
+ * Configuration: `guard.json` in the agent directory (~/.pi/agent), all keys
+ * optional and additive to the built-in rules above except lockedFiles, which
+ * replaces the default list (flake.lock, go.sum):
+ *   { "lockedFiles": ["flake.lock", "Cargo.lock"],
+ *     "secretPathPatterns": ["\\.env$"],                    // JS regexes, tried on absolute paths
+ *     "blockCommands":   [{ "pattern": "\\bterraform apply\\b", "reason": "plan first" }],
+ *     "confirmCommands": [{ "pattern": "\\bkubectl delete\\b", "reason": "deletes cluster objects" }] }
+ * (Nix: programs.pi-agent.guard.*.) An invalid guard.json makes the guard block
+ * every tool call rather than run unguarded.
+ *
  * Note that Pi's `!cmd` (user-typed shell) is not a model tool call and is not
  * checked.
  */
 
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, resolve, sep } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -33,7 +44,7 @@ const allow: Verdict = { kind: "allow" };
 
 // ---- paths ---------------------------------------------------------------
 
-const SECRET_PATH_PATTERNS: RegExp[] = [
+const BUILTIN_SECRET_PATTERNS: RegExp[] = [
 	/(^|\/)secrets(\/|$)/i,
 	/\.age$/i,
 	/^\/run\/agenix(\/|$)/,
@@ -43,7 +54,34 @@ const SECRET_PATH_PATTERNS: RegExp[] = [
 	/\/[^/]*sops[^/]*(\/|$)/i,
 	/\/\.pi\/agent\/auth\.json$/,
 ];
-const LOCKED_FILES = ["flake.lock", "go.sum"];
+const DEFAULT_LOCKED_FILES = ["flake.lock", "go.sum"];
+
+export interface CommandRule {
+	pattern: string;
+	reason: string;
+}
+export interface GuardConfig {
+	lockedFiles?: string[];
+	secretPathPatterns?: string[];
+	blockCommands?: CommandRule[];
+	confirmCommands?: CommandRule[];
+}
+interface Rules {
+	locked: string[];
+	secret: RegExp[];
+	block: { re: RegExp; reason: string }[];
+	confirm: { re: RegExp; reason: string }[];
+}
+
+function compileRules(config: GuardConfig): Rules {
+	const compile = (r: CommandRule) => ({ re: new RegExp(r.pattern), reason: r.reason });
+	return {
+		locked: config.lockedFiles ?? DEFAULT_LOCKED_FILES,
+		secret: [...BUILTIN_SECRET_PATTERNS, ...(config.secretPathPatterns ?? []).map((p) => new RegExp(p, "i"))],
+		block: (config.blockCommands ?? []).map(compile),
+		confirm: (config.confirmCommands ?? []).map(compile),
+	};
+}
 
 function absolutePath(p: string, cwd: string): string {
 	let expanded = p;
@@ -53,14 +91,14 @@ function absolutePath(p: string, cwd: string): string {
 	return isAbsolute(expanded) ? resolve(expanded) : resolve(cwd, expanded);
 }
 
-function isSecretPath(p: string, cwd: string): boolean {
+function isSecretPath(p: string, cwd: string, rules: Rules): boolean {
 	const abs = absolutePath(p, cwd);
-	return SECRET_PATH_PATTERNS.some((re) => re.test(abs));
+	return rules.secret.some((re) => re.test(abs));
 }
 
-function isLockedFile(p: string, cwd: string): boolean {
+function isLockedFile(p: string, cwd: string, rules: Rules): boolean {
 	const base = absolutePath(p, cwd).split(sep).pop() ?? "";
-	return LOCKED_FILES.includes(base);
+	return rules.locked.includes(base);
 }
 
 function inside(p: string, cwd: string): boolean {
@@ -97,7 +135,7 @@ const looksLikePath = (w: string) =>
 
 const flagsOf = (ws: string[]) => ws.filter((w) => w.startsWith("-"));
 
-function checkBash(command: string, cwd: string): Verdict {
+function checkBash(command: string, cwd: string, rules: Rules): Verdict {
 	let confirm: Verdict = allow;
 
 	for (const seg of segments(command)) {
@@ -106,7 +144,7 @@ function checkBash(command: string, cwd: string): Verdict {
 
 		// secrets: any word that looks like a path to one (reading or writing)
 		for (const w of ws) {
-			if (looksLikePath(w) && isSecretPath(w, cwd)) {
+			if (looksLikePath(w) && isSecretPath(w, cwd, rules)) {
 				return { kind: "block", reason: `touches a secret file (${w})` };
 			}
 		}
@@ -121,12 +159,20 @@ function checkBash(command: string, cwd: string): Verdict {
 		}
 
 		// hand edits to flake.lock / go.sum
-		if (ws.some((w) => LOCKED_FILES.includes(w.split("/").pop() ?? ""))) {
+		if (ws.some((w) => rules.locked.includes(w.split("/").pop() ?? ""))) {
 			const writes =
 				/>|\btee\b|\bsed\b.*\s-[a-zA-Z]*i|\bperl\b.*\s-[a-zA-Z]*i|\b(mv|cp|rm|truncate|install|ln|dd)\b|\b(python3?|node|ruby)\b/.test(
 					seg,
 				);
 			if (writes) return { kind: "block", reason: "flake.lock / go.sum are not edited by hand" };
+		}
+
+		// site-specific rules from guard.json
+		if (!inert) {
+			const blocked = rules.block.find((r) => r.re.test(seg));
+			if (blocked) return { kind: "block", reason: blocked.reason };
+			const asked = rules.confirm.find((r) => r.re.test(seg));
+			if (asked) confirm = { kind: "confirm", reason: asked.reason };
 		}
 
 		// nixos-rebuild / home-manager / nh
@@ -172,36 +218,57 @@ function pathsOf(input: Record<string, unknown>): string[] {
 	return out;
 }
 
-function checkTool(toolName: string, input: Record<string, unknown>, cwd: string): Verdict {
+function checkTool(toolName: string, input: Record<string, unknown>, cwd: string, rules: Rules): Verdict {
 	if (toolName === "bash") {
-		return typeof input.command === "string" ? checkBash(input.command, cwd) : allow;
+		return typeof input.command === "string" ? checkBash(input.command, cwd, rules) : allow;
 	}
 	for (const p of pathsOf(input)) {
-		if (isSecretPath(p, cwd)) return { kind: "block", reason: `secret file (${p})` };
-		if ((toolName === "write" || toolName === "edit") && isLockedFile(p, cwd)) {
+		if (isSecretPath(p, cwd, rules)) return { kind: "block", reason: `secret file (${p})` };
+		if ((toolName === "write" || toolName === "edit") && isLockedFile(p, cwd, rules)) {
 			return { kind: "block", reason: `${p} is not edited by hand` };
 		}
 	}
 	return allow;
 }
 
+export function createGuard(config: GuardConfig) {
+	const rules = compileRules(config);
+	return (pi: ExtensionAPI) => {
+		pi.on("tool_call", async (event, ctx) => {
+			const cwd = (ctx as { cwd?: string }).cwd ?? process.cwd();
+			const verdict = checkTool(event.toolName, event.input as Record<string, unknown>, cwd, rules);
+			if (verdict.kind === "allow") return undefined;
+
+			if (verdict.kind === "block") {
+				if (ctx.hasUI) ctx.ui.notify(`Guard blocked ${event.toolName}: ${verdict.reason}`, "warning");
+				return { block: true, reason: `Blocked by guard: ${verdict.reason}` };
+			}
+
+			if (!ctx.hasUI) {
+				return { block: true, reason: `Blocked by guard (${verdict.reason}; no UI to confirm)` };
+			}
+			const detail = event.toolName === "bash" ? String((event.input as { command?: string }).command) : event.toolName;
+			const choice = await ctx.ui.select(`⚠️ ${verdict.reason}\n\n  ${detail}\n\nAllow?`, ["Yes", "No"]);
+			if (choice !== "Yes") return { block: true, reason: "Blocked by user" };
+			return undefined;
+		});
+	};
+}
+
+function loadConfig(): GuardConfig {
+	const dir = process.env.PI_CODING_AGENT_DIR ?? `${homedir()}/.pi/agent`;
+	const file = `${dir}/guard.json`;
+	return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as GuardConfig) : {};
+}
+
 export default function (pi: ExtensionAPI) {
-	pi.on("tool_call", async (event, ctx) => {
-		const cwd = (ctx as { cwd?: string }).cwd ?? process.cwd();
-		const verdict = checkTool(event.toolName, event.input as Record<string, unknown>, cwd);
-		if (verdict.kind === "allow") return undefined;
-
-		if (verdict.kind === "block") {
-			if (ctx.hasUI) ctx.ui.notify(`Guard blocked ${event.toolName}: ${verdict.reason}`, "warning");
-			return { block: true, reason: `Blocked by guard: ${verdict.reason}` };
-		}
-
-		if (!ctx.hasUI) {
-			return { block: true, reason: `Blocked by guard (${verdict.reason}; no UI to confirm)` };
-		}
-		const detail = event.toolName === "bash" ? String((event.input as { command?: string }).command) : event.toolName;
-		const choice = await ctx.ui.select(`⚠️ ${verdict.reason}\n\n  ${detail}\n\nAllow?`, ["Yes", "No"]);
-		if (choice !== "Yes") return { block: true, reason: "Blocked by user" };
-		return undefined;
-	});
+	let guard: (pi: ExtensionAPI) => void;
+	try {
+		guard = createGuard(loadConfig());
+	} catch (error) {
+		// Fail closed: a broken config must not silently turn the guard off.
+		const reason = `guard.json is invalid (${(error as Error).message}); blocking all tool calls until it is fixed`;
+		guard = (p) => p.on("tool_call", async () => ({ block: true, reason }));
+	}
+	guard(pi);
 }

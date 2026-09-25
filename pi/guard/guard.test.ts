@@ -1,14 +1,19 @@
-// Run with: node --test modules/features/apps/pi/guard.test.ts
+// Run with: node --test pi/guard/guard.test.ts
 // (also built by `nix flake check` as checks.pi-guard)
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import guard from "./guard.ts";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import guardDefault, { createGuard, type GuardConfig } from "./guard.ts";
 
 type Result = { block: true; reason: string } | undefined;
 type Handler = (event: unknown, ctx: unknown) => Promise<Result>;
 
 let handler: Handler | undefined;
-guard({ on: (_name: string, h: Handler) => (handler = h) } as never);
+// Installs a guard with the given config and makes it the one `run` talks to.
+const setup = (config: GuardConfig = {}) => createGuard(config)({ on: (_name: string, h: Handler) => (handler = h) } as never);
+setup();
 
 const CWD = "/home/u/proj";
 
@@ -122,4 +127,40 @@ test("ordinary work is untouched", async () => {
 	await allowed(run("read", { path: "src/main.go" }));
 	await allowed(run("edit", { path: "src/main.go", edits: [] }));
 	await allowed(run("grep", { pattern: "x" }));
+});
+
+test("guard.json adds rules and can replace the locked files", async () => {
+	setup({
+		lockedFiles: ["Cargo.lock"],
+		secretPathPatterns: ["\\.env$"],
+		blockCommands: [{ pattern: "\\bterraform apply\\b", reason: "plan first" }],
+		confirmCommands: [{ pattern: "\\bkubectl delete\\b", reason: "deletes cluster objects" }],
+	});
+	await blocked(run("write", { path: "Cargo.lock", content: "" }));
+	await allowed(run("write", { path: "go.sum", content: "" })); // replaced, not extended
+	await blocked(run("read", { path: "app/.env" }));
+	await blocked(run("read", { path: "secrets/x" })); // built-ins still apply
+	await blocked(bash("terraform apply -auto-approve"));
+	await allowed(bash("terraform plan"));
+	await allowed(bash('git commit -m "terraform apply docs"'));
+	const yes = await bash("kubectl delete pod x", { answer: "Yes" });
+	assert.equal(yes.result, undefined);
+	assert.match(yes.asked[0], /deletes cluster objects/);
+	assert.equal((await bash("kubectl delete pod x", { ui: false })).result?.block, true);
+	setup();
+});
+
+test("an invalid guard.json blocks everything instead of disabling the guard", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "guard-"));
+	writeFileSync(join(dir, "guard.json"), JSON.stringify({ blockCommands: [{ pattern: "(unclosed", reason: "x" }] }));
+	process.env.PI_CODING_AGENT_DIR = dir;
+	try {
+		let h: Handler | undefined;
+		guardDefault({ on: (_n: string, f: Handler) => (h = f) } as never);
+		const r = await h!({ toolName: "bash", input: { command: "echo hi" } }, { cwd: CWD, hasUI: false });
+		assert.equal(r?.block, true);
+		assert.match(r!.reason, /guard\.json is invalid/);
+	} finally {
+		delete process.env.PI_CODING_AGENT_DIR;
+	}
 });

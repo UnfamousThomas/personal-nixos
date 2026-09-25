@@ -67,7 +67,9 @@ let
 
   # Where a Pi `packages` entry (~/.pi/agent/settings.json) should point.
   # npm installs under the package.json `name`, which is scoped for some.
-  extensionPath = drv: "${drv}/lib/node_modules/${drv.passthru.npmName or drv.pname}";
+  # (Anything laid out differently can set `passthru.piPackagePath`.)
+  extensionPath =
+    drv: drv.passthru.piPackagePath or "${drv}/lib/node_modules/${drv.passthru.npmName or drv.pname}";
 in
 rec {
   inherit extensionPath;
@@ -82,7 +84,7 @@ rec {
       tag = "v${version}";
       hash = "sha256-fZ6sAJhNjSMz/KVsuuNtjkomkI5rQ0qlWMpvFVPinEc=";
     };
-    lockFile = ./pi/pi-mcp-adapter-package-lock.json;
+    lockFile = ./lockfiles/pi-mcp-adapter-package-lock.json;
     npmDepsHash = "sha256-+fW72/nfLk0o6qoSMFYCOzeFOsofKshs56J575GsG9o=";
     meta = {
       description = "MCP adapter extension for the Pi coding agent";
@@ -102,7 +104,7 @@ rec {
       tag = "v${version}";
       hash = "sha256-1K6U5+2qLgOV7lUWbvqUne/Pf7oMRDf40GXLl8gv6Bk=";
     };
-    lockFile = ./pi/pi-subagents-package-lock.json;
+    lockFile = ./lockfiles/pi-subagents-package-lock.json;
     npmDepsHash = "sha256-w/xgaubF+4hNpFMcoezwXAp2q6akKtMW2p2GUH3d4w8=";
     meta = {
       description = "Sub-agents and workflow orchestration for the Pi coding agent";
@@ -122,7 +124,7 @@ rec {
       hash = "sha256-75WAW5kBWlXhmaHIRhfY/xWtgXPWyFASIG634J8CGoc=";
     };
     sourceRoot = "package";
-    lockFile = ./pi/pi-lsp-package-lock.json;
+    lockFile = ./lockfiles/pi-lsp-package-lock.json;
     npmDepsHash = "sha256-P9HFk8J+ydnNzXOdB5JMM8eJ7RenwEZsGv3NsGj6eGI=";
     meta = {
       description = "Declarative LSP diagnostics and navigation tools for the Pi coding agent";
@@ -153,7 +155,7 @@ rec {
   };
 
   # ACP bridge: lets Zed drive Pi (spawns `pi --mode rpc`, so `pi` must be on
-  # its PATH; see modules/features/apps/zed/zed-pi.nix). A normal compiled
+  # its PATH; home-module.nix wraps it). A normal compiled
   # CLI, unlike the extensions above.
   pi-acp = buildNpmPackage rec {
     pname = "pi-acp";
