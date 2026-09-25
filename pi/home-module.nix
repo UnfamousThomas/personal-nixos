@@ -24,6 +24,7 @@ let
   ext = pkgs.piExtensions;
   jsonFormat = pkgs.formats.json { };
   inherit (lib) mkOption mkEnableOption types;
+  orchestration = import ./orchestration.nix;
 
   # Per-server settings are free-form JSON (whatever pi-lsp / pi-mcp-adapter
   # accept), keyed by id in the option and listed in the generated file.
@@ -37,6 +38,86 @@ let
       reason = mkOption {
         type = types.str;
         description = "Shown to the model (and to you, when asked to confirm).";
+      };
+    };
+  };
+
+  # An agent for pi-subagents is a Markdown file: YAML frontmatter, then the
+  # system prompt. JSON scalars are valid YAML, so values are written as JSON.
+  agentFile =
+    a:
+    let
+      known = lib.filterAttrs (_: v: v != null) {
+        inherit (a)
+          description
+          tools
+          model
+          thinking
+          ;
+        max_turns = a.maxTurns;
+        inherit (a) color;
+      };
+      frontmatter = known // a.frontmatter;
+    in
+    ''
+      ---
+      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v: "${k}: ${builtins.toJSON v}") frontmatter)}
+      ---
+
+      ${a.prompt}'';
+  agentType = types.submodule {
+    options = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Whether this agent is installed (turn a default one off with `enable = false`).";
+      };
+      description = mkOption {
+        type = types.str;
+        description = "What the agent is for. The orchestrator reads this to decide when to spawn it.";
+      };
+      prompt = mkOption {
+        type = types.lines;
+        description = "The agent's system prompt.";
+      };
+      tools = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "read, grep, find, ls";
+        description = "Comma-separated built-in tools the agent may use; null means all.";
+      };
+      model = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "haiku";
+        description = "`provider/model` or a fuzzy name; null inherits the spawning agent's model.";
+      };
+      thinking = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Thinking level (off, minimal, low, medium, high, xhigh, max); null inherits.";
+      };
+      maxTurns = mkOption {
+        type = types.nullOr types.int;
+        default = null;
+        description = "Agentic turns before the agent is asked to wrap up; null is unlimited.";
+      };
+      color = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Badge colour in the UI.";
+      };
+      frontmatter = mkOption {
+        type = types.attrsOf jsonFormat.type;
+        default = { };
+        example = {
+          isolation = "worktree";
+        };
+        description = ''
+          Any other pi-subagents frontmatter key (`isolation`, `memory`,
+          `allowed_subagents`, ...). Do not set `extensions` or `isolated`
+          unless you also want the agent to run without the guard.
+        '';
       };
     };
   };
@@ -300,10 +381,64 @@ in
       };
     };
 
-    subagents.enable = mkOption {
-      type = types.bool;
-      default = true;
-      description = "The pi-subagents extension.";
+    subagents = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "The pi-subagents extension.";
+      };
+      settings = mkOption {
+        inherit (jsonFormat) type;
+        default = { };
+        example = {
+          maxConcurrent = 16;
+        };
+        description = ''
+          ~/.pi/agent/subagents.json: pi-subagents' machine-wide settings
+          (concurrency, turn limits, cost display, ...); a project's own
+          `.pi/subagents.json` still overrides it. Only written when not empty.
+        '';
+      };
+    };
+
+    orchestration = {
+      enable = mkOption {
+        type = types.bool;
+        default = cfg.subagents.enable;
+        defaultText = lib.literalExpression "config.programs.pi-agent.subagents.enable";
+        description = ''
+          Multi-agent working: tells the main agent when and how to hand work to
+          subagents (~/.pi/agent/APPEND_SYSTEM.md) and installs the default agents
+          (explorer, implementer with Go/Kotlin/Nix/Ansible variants, reviewer).
+        '';
+      };
+      instructions = mkOption {
+        type = types.lines;
+        default = orchestration.instructions;
+        defaultText = lib.literalMD "the text in [orchestration.nix](./orchestration.nix)";
+        description = "What the main agent is told about delegating; replace it to change the policy.";
+      };
+    };
+
+    agents = mkOption {
+      type = types.attrsOf agentType;
+      default = { };
+      example = lib.literalExpression ''
+        {
+          explorer.model = "haiku";              # cheaper model for exploration
+          go-implementer.frontmatter.isolation = "worktree";
+          security-auditor = {
+            description = "Reviews changes for security problems";
+            tools = "read, grep, find";
+            prompt = "You are a security auditor. ...";
+          };
+        }
+      '';
+      description = ''
+        Agents the main agent can spawn, by name (~/.pi/agent/agents/<name>.md).
+        With `orchestration.enable` the defaults are there already and can be
+        tuned one field at a time; add your own here.
+      '';
     };
 
     lsp = {
@@ -450,6 +585,15 @@ in
     programs.pi-agent = {
       lsp.servers = asDefaults defaultLspServers;
       mcp.servers = asDefaults defaultMcpServers;
+      subagents.settings = {
+        # Say which model each agent runs on and what it costs; useful the
+        # moment models are routed automatically or a gateway bills you.
+        showModel = lib.mkDefault true;
+        showCost = lib.mkDefault true;
+      };
+      agents = lib.optionalAttrs cfg.orchestration.enable (
+        lib.mapAttrs (_: a: lib.mapAttrs (_: lib.mkDefault) a) orchestration.agents
+      );
     };
 
     home.packages = [ cfg.package ];
@@ -476,6 +620,17 @@ in
             ;
         };
       }
+      // lib.optionalAttrs (cfg.subagents.enable && cfg.subagents.settings != { }) {
+        ".pi/agent/subagents.json".source = toFile "subagents.json" cfg.subagents.settings;
+      }
+      // lib.optionalAttrs (cfg.subagents.enable && cfg.orchestration.enable) {
+        ".pi/agent/APPEND_SYSTEM.md".text = cfg.orchestration.instructions;
+      }
+      // lib.optionalAttrs cfg.subagents.enable (
+        lib.mapAttrs' (name: a: lib.nameValuePair ".pi/agent/agents/${name}.md" { text = agentFile a; }) (
+          lib.filterAttrs (_: a: a.enable) cfg.agents
+        )
+      )
       // lib.optionalAttrs (cfg.context != null) {
         ".pi/agent/AGENTS.md".text = cfg.context;
       }

@@ -7,6 +7,7 @@ rest of this repo only uses it (glue in `modules/features/apps/pi.nix`).
 
 ```
 home-module.nix   Home Manager module: options under programs.pi-agent.*
+orchestration.nix default agents and the orchestrator's instructions (plain data)
 overlay.nix       the packages it needs, as an overlay (import ./overlay.nix { })
 packages/         pi-agent (Pi + tools on PATH), extensions, kotlin-lsp, minecraft-mcp-server
 guard/            the permission guard extension and its tests
@@ -19,7 +20,7 @@ guard/            the permission guard extension and its tests
 | `pi-agent` | Pi 0.87.x with gopls, nixd, yaml/ansible/bash language servers, shellcheck, shfmt, jq, gh, node and uv on its PATH. Appended, so a project's own devenv toolchain wins. |
 | pi-mcp-adapter | MCP servers, connected on first use. Defaults: gopls, mcp-nixos, GitHub (via `gh auth token`). |
 | pi-lsp | Diagnostics after every edit: Go, Nix, YAML, Ansible, Bash, Kotlin (x86_64-linux only). |
-| pi-subagents | Sub-agents. |
+| pi-subagents | Sub-agents, plus the orchestration set-up below. |
 | pi-auto-model | Routes each task to a suitable model among those you have credentials for. |
 | guard | Blocks or asks before dangerous commands and secret access; see the header of `guard/guard.ts`. |
 | Zed | `programs.pi-agent.zed.enable` adds Pi as an agent server (through pi-acp). |
@@ -51,6 +52,45 @@ guard/            the permission guard extension and its tests
 On NixOS with Home Manager as a module, add `overlays.pi` to `nixpkgs.overlays` and the module to
 `home-manager.users.<name>.imports`. (`overlays.pi` is what this repo's own hosts use, via
 `overlays.default`.)
+
+## Multi-agent work
+
+The main session is an orchestrator. It is told (`APPEND_SYSTEM.md`, from
+`orchestration.instructions`) to do small changes itself and to delegate broad or parallel
+work with pi-subagents' `Agent` tool: exploration to `explorer`s in parallel, changes to
+`implementer`s, then a `reviewer`, briefing each fully because subagents do not see the
+conversation, and verifying what comes back. The agents (`orchestration.nix`, installed to
+`~/.pi/agent/agents/`):
+
+| Agent | Tools | Role |
+|---|---|---|
+| `explorer` | read, grep, find, ls, bash | read-only investigation; short report with `path:line` evidence |
+| `implementer` | all | one specified change; verifies and reports files, checks run, doubts |
+| `go-`, `kotlin-`, `nix-`, `ansible-implementer` | all | the same, with each language's verification steps (Nix: build, never switch; Ansible: lint and `--check`, never apply) |
+| `reviewer` | read, grep, find, ls, bash | read-only review; findings by severity with evidence |
+
+pi-subagents' own `Explore`, `Plan` and `general-purpose` stay available. The `Agent` tool's
+description lists every agent, so the orchestrator picks by the descriptions.
+
+Tune or add agents through `programs.pi-agent.agents`, one field at a time:
+
+```nix
+programs.pi-agent.agents = {
+  explorer.model = "haiku";                       # a cheaper model for exploration
+  go-implementer.frontmatter.isolation = "worktree";
+  security-auditor = {
+    description = "Reviews changes for security problems";
+    tools = "read, grep, find";
+    prompt = "You are a security auditor. ...";
+  };
+  kotlin-implementer.enable = false;
+};
+programs.pi-agent.orchestration.enable = false;   # no orchestration text or default agents
+```
+
+Subagents run with the guard: agents do not set `extensions:` or `isolated:`, because an agent
+that skips extensions also skips the guard (keep that in agents you add). `subagents.settings`
+is pi-subagents' `subagents.json` (concurrency, turn limits; cost and model are shown by default).
 
 ## Layers: shared defaults, team settings, personal
 
@@ -135,6 +175,8 @@ small `flake.nix` that exports `overlays.pi = import ./overlay.nix { };`,
 * The guard reads command text; it is a guard rail, not a sandbox (see its header).
 * pi-lsp reads `PI_AGENT_DIR` (default `~/.pi/agent`), not `PI_CODING_AGENT_DIR`, so both need
   setting if the agent directory is moved.
+* Nothing here tests how a *background* subagent answers a guard confirmation in the terminal UI
+  (without a UI, confirmations are refused; blocks apply everywhere).
 * pi-lsp's `lsp_diagnostics` tool reported "no diagnostics" right after edits that had errors
   (diagnostics attached to the edit result itself were right).
 * Kotlin diagnostics after the first edit can be empty until the initial Gradle import
