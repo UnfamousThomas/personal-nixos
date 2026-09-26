@@ -18,6 +18,7 @@ in
         firefox
         onepassword
         docker
+        windows-vm # comment out to drop libvirt/virt-manager
         tailscale
         keyd
         work
