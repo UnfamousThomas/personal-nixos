@@ -5,3 +5,4 @@ result-*
 *.swp
 personal-nixos-installer-PRIVATE.iso
 *.iso
+.idea/
