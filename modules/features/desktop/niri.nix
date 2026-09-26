@@ -215,6 +215,11 @@
             Mod+Shift+5 { move-column-to-workspace 5; }
             Mod+Page_Down { focus-workspace-down; }
             Mod+Page_Up   { focus-workspace-up; }
+            // niri has no minimize: park a column on another workspace
+            // instead, and flip back and forth to clear the screen.
+            Mod+Shift+Page_Down hotkey-overlay-title="Move column to workspace below" { move-column-to-workspace-down; }
+            Mod+Shift+Page_Up   hotkey-overlay-title="Move column to workspace above" { move-column-to-workspace-up; }
+            Mod+X hotkey-overlay-title="Previous workspace (toggle)" { focus-workspace-previous; }
             // Mod+Tab is the Windows-style app switcher. Noctalia's window
             // switcher shows a centered grid of the windows on the current
             // screen (Tab/arrows/Enter to pick). niri's own overview
