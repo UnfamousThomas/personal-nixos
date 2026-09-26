@@ -19,6 +19,7 @@ in
         onepassword
         docker
         windows-vm # comment out to drop libvirt/virt-manager
+        flatpak
         tailscale
         keyd
         work
