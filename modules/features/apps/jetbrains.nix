@@ -114,6 +114,31 @@
             "com.intellij.stylelint"
             "com.intellij.tailwindcss"
             "org.intellij.plugins.postcss"
+            # JS tooling; the JavaScript/TypeScript language plugin stays.
+            "intellij.javascript.eslint"
+            "intellij.prettierJS"
+            "NodeJS"
+            "JavaScriptDebugger"
+            "JSIntentionPowerPack"
+            "com.deadlock.scsyntax"
+            # Jakarta EE (JPA and EL stay: Spring and JPA code use them).
+            "com.intellij.javaee"
+            "com.intellij.javaee.web"
+            "com.intellij.javaee.jakarta.data"
+            "com.intellij.javaee.extensions"
+            "com.intellij.javaee.app.servers.integration"
+            "com.jetbrains.restWebServices"
+            "com.intellij.cdi"
+            "com.intellij.beanValidation"
+            # Database migrations, template engines, TestNG.
+            "com.intellij.flyway"
+            "com.intellij.liquibase"
+            "com.intellij.thymeleaf"
+            "TestNG-J"
+            # GitLab, Services tool window, SSH.
+            "org.jetbrains.plugins.gitlab"
+            "intellij.execution.serviceView.plugin"
+            "intellij.ssh.plugin"
           ];
         };
         webstorm = {
