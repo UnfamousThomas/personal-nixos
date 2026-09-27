@@ -12,6 +12,7 @@ in
         nixos.gaming-steam
         nixos.gaming-minecraft
         nixos.openwave
+        nixos.opendeck
         ./disko.nix
       ];
 

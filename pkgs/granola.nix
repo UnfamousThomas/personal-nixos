@@ -9,6 +9,7 @@
   node-gyp,
   electron_44,
   makeWrapper,
+  libx11,
   copyDesktopItems,
   makeDesktopItem,
 }:
@@ -122,7 +123,14 @@ stdenv.mkDerivation {
     # in the icon theme tree so the desktop entry's plain "granola" resolves.
     install -Dm644 ${../assets/granola.png} $out/share/icons/hicolor/512x512/apps/granola.png
 
+    # The bundled Linux prebuilt of electron-click-drag-plugin needs libstdc++
+    # and libX11, which aren't on Electron's library path under Nix. Without
+    # them its require fails and the plugin falls back to a build/Release/
+    # drag.node that doesn't exist, so the app dies at startup. It has to be
+    # the environment, not patchelf: patchelf'd, this binary segfaults in its
+    # init array.
     makeWrapper ${lib.getExe electron} $out/bin/granola \
+      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ stdenv.cc.cc.lib libx11 ]} \
       --add-flags $out/share/granola/app.asar \
       --add-flags "--ozone-platform-hint=auto"
 
@@ -164,6 +172,12 @@ stdenv.mkDerivation {
       if (db.prepare('SELECT count(*) c FROM t').get().c !== 1) throw new Error('insert failed');
       if (!fired) throw new Error('updateHook did not fire');
       db.close();
+    "
+
+    # Its Linux prebuilt only loads with libstdc++/libX11 on the library path
+    # (the wrapper adds the app.asar arg, so set it by hand here).
+    ELECTRON_RUN_AS_NODE=1 LD_LIBRARY_PATH=${lib.makeLibraryPath [ stdenv.cc.cc.lib libx11 ]} ${lib.getExe electron} -e "
+      require('$out/share/granola/app.asar.unpacked/node_modules/electron-click-drag-plugin/build/Release/linux-x64/drag.node');
     "
 
     runHook postInstallCheck

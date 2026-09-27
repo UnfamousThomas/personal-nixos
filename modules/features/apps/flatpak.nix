@@ -8,9 +8,14 @@
   # installs anything listed below. It only adds -- removing an app from
   # the list won't uninstall it (`flatpak uninstall <id>`).
   flake.modules.nixos.flatpak =
-    { lib, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
-      apps = [ "com.stremio.Stremio" ];
+      apps = [ "com.stremio.Stremio" ] ++ config.myConfig.flatpak.extraApps;
     in
     {
       services.flatpak.enable = true;

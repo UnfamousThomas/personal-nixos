@@ -9,6 +9,12 @@
         default = "thomaspalts";
         description = "Name of the single interactive user this machine is set up for.";
       };
+
+      options.myConfig.flatpak.extraApps = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Extra Flathub app IDs to declare installed (flatpak.nix), on top of the shared base set.";
+      };
     };
 
   # Hooks that Home Manager features contribute to without importing the
