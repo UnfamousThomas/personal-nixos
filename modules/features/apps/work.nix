@@ -14,7 +14,24 @@ in
       # internally-issued certs for internal services without per-app
       # workarounds. Rotate this file if platform/infra ever reissues the
       # root CA (see infra repo's root_ca.crt).
-      security.pki.certificateFiles = [ ../../../assets/falloria-internal-ca.crt ];
+      #
+      # falloria-internal-fallback-ca.crt: a separate, narrower CA -- the
+      # deployments repo's own shared charts/internal-ca, one CA every
+      # self-signed cert in that cluster now chains to (gateway listener
+      # and backend certs, openbao-access's own cert), not Falloria's own
+      # org-wide root. Needed because step-ca's own ACME path is broken
+      # right now (ca.falloria.dev doesn't resolve from inside the infra
+      # cluster -- unrelated infrastructure, not fixed by this file).
+      # Re-export and replace if this CA ever rotates (kubectl -n
+      # cert-manager get secret internal-ca -o jsonpath='{.data.tls\.crt}'
+      # | base64 -d) -- one shared file now, not a separate one per
+      # workload (this used to be openbao-gateway-ca.crt, a dedicated CA
+      # for just openbao.infra.falloria.dev's own listener, before that
+      # per-workload sprawl was consolidated).
+      security.pki.certificateFiles = [
+        ../../../assets/falloria-internal-ca.crt
+        ../../../assets/falloria-internal-fallback-ca.crt
+      ];
 
       # Flox sends usage metrics by default; this is its documented
       # system-wide switch (flox-config(1)).
