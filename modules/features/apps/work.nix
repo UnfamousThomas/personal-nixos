@@ -10,28 +10,23 @@ in
     {
       home-manager.users.${config.my.user}.imports = [ homeManager.work ];
 
-      # Falloria's internal CA, so system tools (curl, git, etc.) trust
-      # internally-issued certs for internal services without per-app
-      # workarounds. Rotate this file if platform/infra ever reissues the
-      # root CA (see infra repo's root_ca.crt).
-      #
-      # falloria-internal-fallback-ca.crt: a separate, narrower CA -- the
-      # deployments repo's own shared charts/internal-ca, one CA every
-      # self-signed cert in that cluster now chains to (gateway listener
-      # and backend certs, openbao-access's own cert), not Falloria's own
-      # org-wide root. Needed because step-ca's own ACME path is broken
-      # right now (ca.falloria.dev doesn't resolve from inside the infra
-      # cluster -- unrelated infrastructure, not fixed by this file).
-      # Re-export and replace if this CA ever rotates (kubectl -n
-      # cert-manager get secret internal-ca -o jsonpath='{.data.tls\.crt}'
-      # | base64 -d) -- one shared file now, not a separate one per
-      # workload (this used to be openbao-gateway-ca.crt, a dedicated CA
-      # for just openbao.infra.falloria.dev's own listener, before that
-      # per-workload sprawl was consolidated).
-      security.pki.certificateFiles = [
-        ../../../assets/falloria-internal-ca.crt
-        ../../../assets/falloria-internal-fallback-ca.crt
-      ];
+      # The deployments repo's own shared charts/internal-ca -- the one CA
+      # every self-signed cert in the infra cluster chains to (gateway
+      # listener and backend certs, openbao-access's own cert), so system
+      # tools (curl, git, etc.) trust those without per-app workarounds.
+      # Needed because step-ca -- the fleet's real org-wide root, which
+      # this file used to point at -- has a broken ACME path right now
+      # (ca.falloria.dev doesn't resolve from inside the infra cluster)
+      # and nothing in the cluster actually issues off it; confirmed
+      # nothing else in this repo or fleet-infra/deployments depends on
+      # that real root, so it was dropped rather than kept alongside an
+      # unused one. Re-export and replace if this CA ever rotates
+      # (kubectl -n cert-manager get secret internal-ca -o
+      # jsonpath='{.data.tls\.crt}' | base64 -d) -- one shared file, not
+      # a separate one per workload (this used to be openbao-gateway-ca.crt,
+      # a dedicated CA for just openbao.infra.falloria.dev's own listener,
+      # before that per-workload sprawl was consolidated).
+      security.pki.certificateFiles = [ ../../../assets/falloria-internal-ca.crt ];
 
       # Flox sends usage metrics by default; this is its documented
       # system-wide switch (flox-config(1)).
