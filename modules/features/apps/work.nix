@@ -10,22 +10,9 @@ in
     {
       home-manager.users.${config.my.user}.imports = [ homeManager.work ];
 
-      # The deployments repo's own shared charts/internal-ca -- the one CA
-      # every self-signed cert in the infra cluster chains to (gateway
-      # listener and backend certs, openbao-access's own cert), so system
-      # tools (curl, git, etc.) trust those without per-app workarounds.
-      # Needed because step-ca -- the fleet's real org-wide root, which
-      # this file used to point at -- has a broken ACME path right now
-      # (ca.falloria.dev doesn't resolve from inside the infra cluster)
-      # and nothing in the cluster actually issues off it; confirmed
-      # nothing else in this repo or fleet-infra/deployments depends on
-      # that real root, so it was dropped rather than kept alongside an
-      # unused one. Re-export and replace if this CA ever rotates
-      # (kubectl -n cert-manager get secret internal-ca -o
-      # jsonpath='{.data.tls\.crt}' | base64 -d) -- one shared file, not
-      # a separate one per workload (this used to be openbao-gateway-ca.crt,
-      # a dedicated CA for just openbao.infra.falloria.dev's own listener,
-      # before that per-workload sprawl was consolidated).
+      # deployments repo's shared charts/internal-ca -- trusts every
+      # self-signed cert in the infra cluster. Re-export if it rotates:
+      # kubectl -n cert-manager get secret internal-ca -o jsonpath='{.data.tls\.crt}' | base64 -d
       security.pki.certificateFiles = [ ../../../assets/falloria-internal-ca.crt ];
 
       # Flox sends usage metrics by default; this is its documented
